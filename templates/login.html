@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>DevOps Login</title>
+</head>
+<body>
+    <div class="card">
+        <div style="font-size: 50px; color: var(--primary-purple);">🏛️</div>
+        <h3>Fundamental of DevOps - AIML/IT1/IT2</h3>
+        
+        <form action="/login" method="POST">
+            <input type="email" name="email" placeholder="📧 Email ID" required>
+            <input type="password" name="password" placeholder="🔒 Password" required>
+            <button type="submit" class="btn-primary" style="margin-top: 15px;">LOGIN</button>
+        </form>
+
+        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+
+        <form action="/register-check" method="POST">
+            <input type="text" name="reg_code" placeholder="🔑 New User? Enter Code here">
+            <button type="submit" class="btn-register">You can Register here Now</button>
+        </form>
+    </div>
+</body>
+</html>

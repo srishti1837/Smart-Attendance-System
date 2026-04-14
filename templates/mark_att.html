@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Verify Attendance</title>
+</head>
+<body>
+    <div class="card">
+        <h3 style="color: var(--primary-purple);">Verification Required</h3>
+        <p>Branch: <b>{{ branch_id }}</b></p>
+        
+        <form id="att-form">
+            <input type="text" id="enrollment" placeholder="Enrollment No" required>
+            <input type="password" id="password" placeholder="Verify Password" required>
+            
+            <button type="button" onclick="getLocationAndSubmit()" class="btn-primary" style="background: var(--primary-purple); color: white; margin-top: 10px;">
+                Confirm My Presence 📍
+            </button>
+        </form>
+        
+        <p id="status-msg" style="margin-top: 15px; font-size: 14px;"></p>
+    </div>
+
+    <script>
+        function getLocationAndSubmit() {
+            const msg = document.getElementById('status-msg');
+            msg.innerText = "Capturing location... please wait.";
+            msg.style.color = "blue";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const payload = {
+                        enrollment: document.getElementById('enrollment').value,
+                        password: document.getElementById('password').value,
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        branch: "{{ branch_id }}"
+                    };
+
+                    // Send to your Flask backend
+                    const response = await fetch('/submit-attendance', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: new URLSearchParams(payload)
+                    });
+
+                    const result = await response.text();
+                    msg.innerText = result;
+                    msg.style.color = response.ok ? "green" : "red";
+
+                }, (error) => {
+                    msg.innerText = "Error: Please allow GPS access to mark attendance.";
+                    msg.style.color = "red";
+                });
+            }
+        }
+    </script>
+</body>
+</html>

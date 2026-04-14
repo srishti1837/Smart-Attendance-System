@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .live-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; }
+        .present { color: #2e7d32; font-weight: bold; background: #e8f5e9; }
+        .absent { color: #c62828; opacity: 0.5; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+    </style>
+</head>
+<body style="background: #fdf7fc;">
+    <div class="header-bar" style="background: #9c27b0; color: white; padding: 15px;">
+        <h2>Live Session: {{ branch_id }}</h2>
+        <button onclick="window.close()" style="background: white; color: black; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">Close Session</button>
+    </div>
+
+    <div class="live-grid">
+        <div class="card" style="text-align: center;">
+            <h3>Scan for Attendance</h3>
+            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 10px; border-radius: 10px;">
+                Loading QR...
+            </div>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">Students must be within 30m</p>
+        </div>
+
+        <div class="card">
+            <h3>Headcount: <span id="present-count">0</span></h3>
+            <table>
+                <thead>
+                    <tr style="background: #f3e5f5;">
+                        <th>Enrollment</th>
+                        <th>Name</th>
+                        <th>Attendance</th>
+                        <th>Proxy Flag</th>
+                    </tr>
+                </thead>
+                <tbody id="student-table">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const branchId = "{{ branch_id }}";
+
+        // 1. Fetch QR once
+        async function loadQR() {
+            const res = await fetch(`/generate_qr/${branchId}`);
+            const data = await res.text();
+            document.getElementById('qr-box').innerHTML = `<img src="${data}" width="100%">`;
+        }
+
+        // 2. Poll Student List every 3 seconds
+        async function updateList() {
+            const res = await fetch(`/api/get-branch-students/${branchId}`);
+            const students = await res.json();
+            
+            const table = document.getElementById('student-table');
+            let presentCount = 0;
+            table.innerHTML = "";
+
+            students.forEach(s => {
+                if(s.is_present) presentCount++;
+                const statusClass = s.is_present ? 'present' : 'absent';
+                
+                table.innerHTML += `
+                    <tr class="${statusClass}">
+                        <td>${s.enrollment_no}</td>
+                        <td>${s.name}</td>
+                        <td>${s.is_present ? '✅ Present' : '❌ Absent'}</td>
+                        <td>
+                            <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
+                                   onchange="toggleProxy('${s.email}', this.checked)">
+                        </td>
+                    </tr>`;
+            });
+            document.getElementById('present-count').innerText = presentCount;
+        }
+
+        async function toggleProxy(email, status) {
+            await fetch('/api/toggle-proxy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `email=${email}&status=${status}`
+            });
+        }
+
+        loadQR();
+        setInterval(updateList, 3000); // Live update
+    </script>
+</body>
+</html>

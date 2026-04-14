@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Professor Control Panel</title>
+    <style>
+        :root {
+            --primary-purple: #9c27b0;
+            --dark-purple: #7b1fa2;
+            --light-purple: #f3e5f5;
+            --success-green: #2e7d32;
+        }
+
+        body { background-color: #fdf7fc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        .admin-header {
+            background: var(--primary-purple);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .branch-nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            overflow-x: auto;
+        }
+
+        .branch-btn {
+            padding: 10px 40px;
+            border-radius: 8px;
+            border: none;
+            background: var(--light-purple);
+            color: black;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .branch-btn.active { background: var(--primary-purple); color: white; }
+        .btn-add { background: #4caf50; color: white; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .qr-placeholder {
+            border: 2px dashed #ce93d8;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            margin-top: 15px;
+            color: #999;
+            background: #fafafa;
+            overflow: hidden;
+        }
+
+        .assignment-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 15px;
+            border-radius: 25px;
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .btn-qr { background: var(--primary-purple); }
+        .btn-mark { background: #00796b; }
+    </style>
+</head>
+<body>
+
+<div style="max-width: 1000px; margin: 40px auto; padding: 0 20px;">
+    
+    <div class="admin-header">
+        <h2 style="margin: 0;">Professor Control Panel</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.8;">Welcome, {{ user.name }}</p>
+    </div>
+
+    <div class="branch-nav">
+        <button class="branch-btn active" onclick="switchBranch('IT-1')">IT-1</button>
+        <button class="branch-btn" onclick="switchBranch('IT-2')">IT-2</button>
+        <button class="branch-btn" onclick="switchBranch('AIML')">AIML</button>
+        <button class="branch-btn btn-add">+ Add Branch</button>
+    </div>
+
+    <div class="main-grid">
+        <div>
+            <h3 id="active-branch-title">Branch: IT-1</h3>
+            <p><b>Attendance Management</b></p>
+            
+            <button onclick="startAttendance()" class="btn-action btn-qr">
+                🚀 Start Attendance QR
+            </button>
+
+            <div id="qr-container" class="qr-placeholder">
+                QR will appear here
+            </div>
+            
+            <button onclick="stopAttendance()" class="btn-action" style="background: #e53935; margin-top: 10px;">
+                🛑 Stop Session
+            </button>
+        </div>
+
+        <div>
+            <p style="margin-top: 40px;"><b>Assignment Marking</b></p>
+            <button onclick="saveAssignments()" class="btn-action btn-mark">
+                📝 Mark Submissions
+            </button>
+
+            <div id="assignment-list">
+                <div class="assignment-row">
+                    <span>Assignment 1 (DevOps Basics)</span>
+                    <input type="checkbox" class="assn-check" data-id="assn1">
+                </div>
+                <div class="assignment-row">
+                    <span>Assignment 2 (Dockerization)</span>
+                    <input type="checkbox" class="assn-check" data-id="assn2">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentBranch = "IT-1";
+
+    function switchBranch(branch) {
+        currentBranch = branch;
+        document.getElementById('active-branch-title').innerText = "Branch: " + branch;
+        document.querySelectorAll('.branch-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        // Logic to refresh data for the specific branch would go here
+    }
+
+    // --- ATTENDANCE LOGIC ---
+    function startAttendance() {
+        // Open the live session in a new window/tab
+        window.open(`/professor/live-session/${currentBranch}`, '_blank', 'width=1200,height=800');
+    }
+
+    async function stopAttendance() {
+        // You'll need to add this route in app.py to set attendance_active = False
+        const response = await fetch(`/professor/stop-attendance/${currentBranch}`);
+        if(response.ok) {
+            document.getElementById('qr-container').innerHTML = "Session Stopped";
+            alert("Attendance Session Closed.");
+        }
+    }
+
+    // --- ASSIGNMENT LOGIC ---
+    function saveAssignments() {
+        const checks = document.querySelectorAll('.assn-check');
+        const results = {};
+        
+        checks.forEach(check => {
+            results[check.getAttribute('data-id')] = check.checked;
+        });
+
+        console.log("Saving for " + currentBranch, results);
+        alert("Submissions marked for " + currentBranch);
+        // You can add a fetch() here to save 'results' to Firebase
+    }
+</script>
+
+</body>
+</html>
