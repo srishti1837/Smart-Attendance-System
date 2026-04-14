@@ -100,15 +100,20 @@
     </div>
 
     <div class="branch-nav">
-        <button class="branch-btn active" onclick="switchBranch('IT-1')">IT-1</button>
-        <button class="branch-btn" onclick="switchBranch('IT-2')">IT-2</button>
-        <button class="branch-btn" onclick="switchBranch('AIML')">AIML</button>
-        <button class="branch-btn btn-add">+ Add Branch</button>
+        {% for branch in branches %}
+            <button class="branch-btn {% if loop.first %}active{% endif %}" 
+                    onclick="switchBranch('{{ branch }}')">
+                {{ branch }}
+            </button>
+        {% endfor %}
+        <button class="branch-btn btn-add" onclick="toggleAddBranchModal(true)" style="background: #4caf50; color: white;">
+            + Add Branch
+        </button>
     </div>
 
     <div class="main-grid">
         <div>
-            <h3 id="active-branch-title">Branch: IT-1</h3>
+            <h3 id="active-branch-title">Branch: {{ branches[0] if branches else 'None' }}</h3>
             <p><b>Attendance Management</b></p>
             
             <button onclick="startAttendance()" class="btn-action btn-qr">
@@ -116,7 +121,7 @@
             </button>
 
             <div id="qr-container" class="qr-placeholder">
-                QR will appear here
+                QR will appear in live window
             </div>
             
             <button onclick="stopAttendance()" class="btn-action" style="background: #e53935; margin-top: 10px;">
@@ -131,59 +136,103 @@
             </button>
 
             <div id="assignment-list">
-                <div class="assignment-row">
-                    <span>Assignment 1 (DevOps Basics)</span>
-                    <input type="checkbox" class="assn-check" data-id="assn1">
-                </div>
-                <div class="assignment-row">
-                    <span>Assignment 2 (Dockerization)</span>
-                    <input type="checkbox" class="assn-check" data-id="assn2">
-                </div>
+                <p style="color: gray; font-size: 0.9em;">Select a branch to view students</p>
             </div>
         </div>
     </div>
 </div>
 
+<div id="addBranchModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; width: 300px; margin: 100px auto; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+        <h3>Add New Branch</h3>
+        <input type="text" id="newBranchName" placeholder="e.g., CS-A" 
+               style="width: 85%; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; text-transform: uppercase;">
+        <br>
+        <button onclick="submitNewBranch()" style="background: #9c27b0; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%;">
+            Create Branch
+        </button>
+        <button onclick="toggleAddBranchModal(false)" style="background: none; border: none; color: gray; margin-top: 10px; cursor: pointer;">
+            Cancel
+        </button>
+    </div>
+</div>
+
 <script>
-    let currentBranch = "IT-1";
+    // Initialize currentBranch with the first branch from Python
+    let currentBranch = "{{ branches[0] if branches else '' }}";
+
+    function toggleAddBranchModal(show) {
+        document.getElementById('addBranchModal').style.display = show ? 'block' : 'none';
+    }
+
+    async function submitNewBranch() {
+        const branchName = document.getElementById('newBranchName').value.trim().toUpperCase();
+        if (!branchName) return alert("Enter branch name");
+
+        const response = await fetch('/api/create-branch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ branch_name: branchName })
+        });
+
+        if (response.ok) {
+            location.reload(); // Refresh to update the branch navigation buttons
+        } else {
+            const err = await response.json();
+            alert("Error: " + err.error);
+        }
+    }
 
     function switchBranch(branch) {
         currentBranch = branch;
         document.getElementById('active-branch-title').innerText = "Branch: " + branch;
+        
+        // Update button UI
         document.querySelectorAll('.branch-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        // Logic to refresh data for the specific branch would go here
+        if (event) event.target.classList.add('active');
+
+        // Load the student list for assignment marking
+        loadAssignmentData(branch);
     }
 
-    // --- ATTENDANCE LOGIC ---
+    async function loadAssignmentData(branchId) {
+        const res = await fetch(`/api/users/${branchId}`);
+        if (!res.ok) return;
+        
+        const students = await res.json();
+        const listContainer = document.getElementById('assignment-list');
+        listContainer.innerHTML = "";
+
+        if (students.length === 0) {
+            listContainer.innerHTML = "<p>No students registered in this branch.</p>";
+            return;
+        }
+
+        students.forEach(s => {
+            listContainer.innerHTML += `
+                <div class="assignment-row" style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                    <span>${s.name} <small>(${s.enrollment_no})</small></span>
+                    <div>
+                        <input type="checkbox" class="assn-check" data-email="${s.email}" data-id="assn1">
+                    </div>
+                </div>`;
+        });
+    }
+
     function startAttendance() {
-        // Open the live session in a new window/tab
+        if (!currentBranch) return alert("Select a branch first");
         window.open(`/professor/live-session/${currentBranch}`, '_blank', 'width=1200,height=800');
     }
 
     async function stopAttendance() {
-        // You'll need to add this route in app.py to set attendance_active = False
         const response = await fetch(`/professor/stop-attendance/${currentBranch}`);
         if(response.ok) {
-            document.getElementById('qr-container').innerHTML = "Session Stopped";
             alert("Attendance Session Closed.");
         }
     }
 
-    // --- ASSIGNMENT LOGIC ---
-    function saveAssignments() {
-        const checks = document.querySelectorAll('.assn-check');
-        const results = {};
-        
-        checks.forEach(check => {
-            results[check.getAttribute('data-id')] = check.checked;
-        });
-
-        console.log("Saving for " + currentBranch, results);
-        alert("Submissions marked for " + currentBranch);
-        // You can add a fetch() here to save 'results' to Firebase
-    }
+    // Load initial data on page load
+    window.onload = () => {
+        if (currentBranch) loadAssignmentData(currentBranch);
+    };
 </script>
-
-</body>
-</html>

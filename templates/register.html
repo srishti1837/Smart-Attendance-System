@@ -12,15 +12,24 @@
             <input type="email" name="email" placeholder="Email Address" required>
             <input type="text" name="enrollment" placeholder="Enrollment No" required>
             
-            <select name="branch" required>
+            <select name="branch" required style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
                 <option value="" disabled selected>Select your Branch</option>
-                <option value="IT1">Information Technology - 1</option>
-                <option value="IT2">Information Technology - 2</option>
-                <option value="AIML">AI & Machine Learning</option>
+                {% if branches %}
+                    {% for branch in branches %}
+                        <option value="{{ branch }}">{{ branch }}</option>
+                    {% endfor %}
+                {% else %}
+                    <option value="" disabled>No branches available. Contact Admin.</option>
+                {% endif %}
             </select>
 
             <input type="password" name="password" placeholder="Create Password" required>
-            <button type="submit" class="btn-primary" style="background: var(--primary-purple); color: white;">Complete Registration</button>
+            
+            <input type="hidden" name="prof_admin_code" value="">
+
+            <button type="submit" class="btn-primary" style="background: var(--primary-purple); color: white;">
+                Complete Registration
+            </button>
         </form>
         <p><a href="/" style="color: var(--text-gray); font-size: 14px;">Back to Login</a></p>
     </div>

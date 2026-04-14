@@ -3,55 +3,96 @@
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <title>Verify Attendance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <div class="card">
-        <h3 style="color: var(--primary-purple);">Verification Required</h3>
+    <div class="card" style="max-width: 400px; margin: 50px auto; padding: 20px; text-align: center;">
+        <h3 style="color: #9c27b0;">Verification Required</h3>
         <p>Branch: <b>{{ branch_id }}</b></p>
         
         <form id="att-form">
-            <input type="text" id="enrollment" placeholder="Enrollment No" required>
-            <input type="password" id="password" placeholder="Verify Password" required>
+            <input type="text" id="enrollment" placeholder="Enrollment No" required 
+                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
             
-            <button type="button" onclick="getLocationAndSubmit()" class="btn-primary" style="background: var(--primary-purple); color: white; margin-top: 10px;">
+            <input type="password" id="password" placeholder="Verify Password" required 
+                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+            
+            <button type="button" onclick="getLocationAndSubmit()" class="btn-primary" 
+                    style="background: #9c27b0; color: white; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold;">
                 Confirm My Presence 📍
             </button>
         </form>
         
-        <p id="status-msg" style="margin-top: 15px; font-size: 14px;"></p>
+        <p id="status-msg" style="margin-top: 15px; font-size: 14px; font-weight: 500;"></p>
     </div>
 
     <script>
-        function getLocationAndSubmit() {
+        async function getLocationAndSubmit() {
             const msg = document.getElementById('status-msg');
-            msg.innerText = "Capturing location... please wait.";
+            const enrollment = document.getElementById('enrollment').value;
+            const password = document.getElementById('password').value;
+
+            // Simple validation before asking for GPS
+            if(!enrollment || !password) {
+                msg.innerText = "Please enter both Enrollment No and Password.";
+                msg.style.color = "red";
+                return;
+            }
+
+            msg.innerText = "Capturing precise location... please wait.";
             msg.style.color = "blue";
 
             if (navigator.geolocation) {
+                // Using high accuracy to ensure Geofencing (30m) works correctly
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                    maximumAge: 0
+                };
+
                 navigator.geolocation.getCurrentPosition(async (position) => {
                     const payload = {
-                        enrollment: document.getElementById('enrollment').value,
-                        password: document.getElementById('password').value,
+                        enrollment: enrollment,
+                        password: password,
                         lat: position.coords.latitude,
                         lng: position.coords.longitude,
-                        branch: "{{ branch_id }}"
+                        branch_id: "{{ branch_id }}",
+                        token: "{{ token }}" // THIS IS CRITICAL for your security check
                     };
 
-                    // Send to your Flask backend
-                    const response = await fetch('/submit-attendance', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: new URLSearchParams(payload)
-                    });
+                    try {
+                        const response = await fetch('/submit-attendance', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: new URLSearchParams(payload)
+                        });
 
-                    const result = await response.text();
-                    msg.innerText = result;
-                    msg.style.color = response.ok ? "green" : "red";
+                        const result = await response.text();
+                        msg.innerText = result;
+                        
+                        if (response.ok) {
+                            msg.style.color = "green";
+                            // Optional: Hide form on success
+                            document.getElementById('att-form').style.display = 'none';
+                        } else {
+                            msg.style.color = "red";
+                        }
+                    } catch (err) {
+                        msg.innerText = "Server Error. Please check your connection.";
+                        msg.style.color = "red";
+                    }
 
                 }, (error) => {
-                    msg.innerText = "Error: Please allow GPS access to mark attendance.";
                     msg.style.color = "red";
-                });
+                    if (error.code === 1) {
+                        msg.innerText = "Error: Permission Denied. Please allow GPS access in your browser settings.";
+                    } else {
+                        msg.innerText = "Error: Location could not be determined. Try moving near a window.";
+                    }
+                }, options);
+            } else {
+                msg.innerText = "Your browser does not support Geolocation.";
+                msg.style.color = "red";
             }
         }
     </script>
