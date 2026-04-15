@@ -1,96 +1,391 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .dashboard-wrapper {
-            display: flex;
-            flex-direction: column; /* This fixes the horizontal floating issue */
-            gap: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .card-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .header-bar {
-            background: #9c27b0;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .progress-bg { background: #eee; height: 10px; border-radius: 5px; margin: 10px 0; }
-        .progress-fill { background: #4caf50; height: 100%; border-radius: 5px; width: 0%; transition: 0.5s; }
-        .marks-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My DevOps Status</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Roboto', sans-serif; background: #f5f0f5; color: #333; }
+ 
+  .app-header {
+    background: #7b2fbe;
+    color: white;
+    text-align: center;
+    padding: 16px;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .logout-btn {
+    position: absolute;
+    right: 16px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+  }
+ 
+  .container { max-width: 800px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+ 
+  /* Profile Card */
+  .profile-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .avatar {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: #7b2fbe;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 28px; flex-shrink: 0;
+  }
+  .profile-info h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .profile-info p { font-size: 14px; color: #555; line-height: 1.6; }
+  .proxy-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 14px; color: #555; }
+  .proxy-row input { width: 16px; height: 16px; }
+ 
+  /* Section headers */
+  .section-header {
+    padding: 14px 16px;
+    border-radius: 10px 10px 0 0;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .teal-header { background: #2a9d8f; }
+  .dark-teal-header { background: #1d6e65; }
+  .orange-header { background: #e05a2b; }
+ 
+  /* Attendance */
+  .attendance-section { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .attendance-body { padding: 16px; }
+  .attendance-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .attendance-title { font-size: 15px; font-weight: 500; }
+  .attendance-count { color: #2a9d8f; font-weight: 700; font-size: 15px; }
+  .progress-bar-bg { background: #e0e0e0; border-radius: 8px; height: 12px; overflow: hidden; }
+  .progress-bar-fill { background: #4caf50; height: 100%; border-radius: 8px; transition: width 1s ease; }
+  .attendance-pct { text-align: right; font-size: 13px; color: #888; margin-top: 4px; }
+  .attendance-note { text-align: center; font-size: 13px; color: #888; margin-top: 8px; }
+  .divider { border: none; border-top: 1px solid #eee; margin: 12px 0; }
+  .view-details-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; cursor: pointer; }
+  .view-details-link { color: #7b2fbe; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .view-details-sub { font-size: 13px; color: #888; }
+ 
+  /* Assignments */
+  .assignments-section { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .assignment-row { padding: 14px 16px; border-bottom: 1px solid #f0e8f5; display: flex; align-items: flex-start; gap: 12px; }
+  .assignment-row:last-child { border-bottom: none; }
+  .asgn-num {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #f0e8f5; color: #7b2fbe;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0;
+  }
+  .asgn-info { flex: 1; }
+  .asgn-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .asgn-deadline { font-size: 13px; color: #888; }
+  .asgn-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .date-chip { font-size: 12px; border: 1px solid #ccc; border-radius: 20px; padding: 3px 10px; color: #555; }
+  .status-chip {
+    display: flex; align-items: center; gap: 5px;
+    border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 500;
+  }
+  .status-submitted { background: #e6f7ee; color: #2e7d52; border: 1px solid #a3d9b1; }
+  .status-pending { background: white; color: #888; border: 1px solid #ccc; }
+ 
+  /* Marks */
+  .marks-section { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .mark-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #f0e8f5; font-size: 14px; }
+  .mark-row:last-child { border-bottom: none; }
+  .mark-chip { background: #f5f5f5; border-radius: 20px; padding: 4px 14px; font-size: 13px; color: #666; font-weight: 500; white-space: nowrap; }
+  .total-row { background: #f0ecff; }
+  .total-row .mark-label { color: #5b3eb5; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .total-row .mark-chip { background: none; color: #5b3eb5; font-weight: 700; font-size: 15px; }
+ 
+  /* Feedback */
+  .feedback-section { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .feedback-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; }
+  .feedback-textarea {
+    width: 100%; border: 1.5px solid #ddd; border-radius: 8px;
+    padding: 12px; font-size: 14px; font-family: inherit;
+    resize: vertical; min-height: 90px; outline: none;
+    color: #333;
+  }
+  .feedback-textarea:focus { border-color: #7b2fbe; }
+  .feedback-note { font-size: 12px; color: #888; margin-top: 6px; }
+  .feedback-bottom { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .share-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: none; border: none; color: #555; font-size: 15px;
+    cursor: pointer; font-weight: 500;
+  }
+  .share-btn:hover { color: #7b2fbe; }
+ 
+  /* Footer */
+  .footer { text-align: center; font-size: 12px; color: #9c6ec7; padding: 12px 0 4px; }
+ 
+  /* Detail table */
+  .detail-table { background: #f9f5ff; border-radius: 8px; margin-top: 10px; overflow: hidden; display: none; }
+  .detail-table.open { display: block; }
+  .detail-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .detail-table th { background: #7b2fbe; color: white; padding: 8px 12px; text-align: left; }
+  .detail-table td { padding: 8px 12px; border-bottom: 1px solid #e8dcf5; }
+  .present { color: #2e7d52; font-weight: 600; }
+  .absent { color: #c0392b; font-weight: 600; }
+</style>
 </head>
-<body style="background: #fdf7fc;">
-
-<div class="dashboard-wrapper">
-    <div class="header-bar">
-        <span>My DevOps Status ...</span>
-        <a href="/logout" style="color: white; text-decoration: none;">🚪</a>
+<body>
+ 
+<header class="app-header">
+  My DevOps Status ...
+  <button class="logout-btn" title="Logout" onclick="location.href='/logout'">&#x21D2;</button>
+</header>
+ 
+<div class="container">
+ 
+  <div class="profile-card">
+    <div class="avatar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 24 24">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+      </svg>
     </div>
-
-    <div class="card-box" style="display: flex; align-items: center; gap: 15px;">
-        <div style="background: #9c27b0; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">👤</div>
+    <div class="profile-info">
+      <h2>{{ student.name }}</h2>
+      <p>Enrollment: {{ student.enrollment_no }}</p>
+      <p>Branch: {{ branch_id }} | Sem: {{ student.semester if student.semester else '4' }}</p>
+      <div class="proxy-row">
+        <strong>Proxy Flag:</strong>
+        <input type="checkbox" {% if student.proxy_flag %}checked{% endif %} disabled>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="attendance-section">
+    <div class="section-header teal-header">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Attendance Progress
+    </div>
+    <div class="attendance-body">
+      <div class="attendance-title-row">
+        <span class="attendance-title">Overall Attendance</span>
+        <span class="attendance-count">{{ attendance_records }} / {{ total_classes }} Days</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="attBar" style="width: 0%"></div>
+      </div>
+      <div class="attendance-pct">{{ attendance_percentage }}%</div>
+      <hr class="divider">
+      <div class="view-details-row" onclick="toggleDetails()">
         <div>
-            <h3 style="margin: 0;">{{ user.name }}</h3>
-            <small>{{ user.enrollment_no }} | {{ user.branch }}</small>
+          <div class="view-details-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="#7b2fbe" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="3"/></svg>
+            View Details
+          </div>
+          <div class="view-details-sub">{{ attendance_records }} classes attended</div>
         </div>
+        <span id="chevron" style="font-size:20px;color:#aaa;">&#x2304;</span>
+      </div>
+      <div class="detail-table" id="detailTable">
+        <table>
+          <tr><th>#</th><th>Date</th><th>Status</th></tr>
+          {% for record in full_history %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ record.date }}</td>
+            <td class="{{ 'present' if record.status == 'Present' else 'absent' }}">
+              {{ record.status }}
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
     </div>
-
-    <div class="card-box">
-        <b style="color: #9c27b0;">Attendance Progress</b>
-        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 10px;">
-            <span>Overall Attendance</span>
-            <span style="color: #2196f3;">{{ attendance_count }} / 8 Days</span>
-        </div>
-        <div class="progress-bg"><div id="bar" class="progress-fill"></div></div>
+  </div>
+ 
+  <div class="assignments-section">
+    <div class="section-header dark-teal-header">
+      ✔ Assignment Submissions
     </div>
-
-    <a href="/mark-attendance-page/{{ user.branch }}" style="text-decoration: none;">
-        <button style="width: 100%; background: #9c27b0; color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            📷 SCAN QR CODE
-        </button>
-    </a>
-
-    <div class="card-box" style="border-top: 5px solid #ff5722;">
-        <b style="color: #ff5722;">📊 Mid / End Sem Marks</b>
-        <div style="margin-top: 10px;">
-            {% for label, score in marks.items() %}
-            <div class="marks-row">
-                <span>{{ label }}</span>
-                <b>{{ score }}</b>
-            </div>
-            {% endfor %}
+    {% for assn in assignments %}
+    <div class="assignment-row">
+      <div class="asgn-num">{{ loop.index }}</div>
+      <div class="asgn-info">
+        <div class="asgn-title">{{ assn.title }}</div>
+        <div class="asgn-deadline" 
+            onclick="showAssignmentPopup('{{ assn.title|e }}', '{{ assn.description|e }}')" 
+            style="cursor:pointer; text-decoration: underline;">
+            Deadline ({{ assn.deadline }}) - Click for Details
         </div>
-    </div>
-
-    <div class="card-box" style="border-top: 5px solid #009688;">
-        <b style="color: #009688;">✔ Assignments</b>
-        {% for assn in assignments %}
-        <div class="marks-row">
-            <span>{{ assn.title }}</span>
-            <span style="color: #2e7d32; font-size: 12px;">✔ Submitted</span>
         </div>
+      <div class="asgn-right">
+        {% if assn.submitted %}
+          <span class="date-chip">{{ assn.submission_date }}</span>
+          <span class="status-chip status-submitted">✔ Submitted</span>
         {% else %}
-        <p style="font-size: 12px; color: #999;">No assignments found for this branch.</p>
-        {% endfor %}
+          <span class="status-chip status-pending">○ Pending</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+ 
+    <div class="marks-section">
+        <div class="section-header orange-header">
+            📊 Mid / End Sem Marks
+        </div>
+        <div class="mark-row">
+            <span>Mid Term Marks</span>
+            <span class="mark-chip">{{ student.marks_mid if student.marks_mid else '—' }} / 30</span>
+        </div>
+        <div class="mark-row">
+            <span>End Sem Marks</span>
+            <span class="mark-chip">{{ student.marks_end if student.marks_end else '—' }} / 60</span>
+        </div>
+        <div class="mark-row">
+            <span>CAP Marks</span>
+            <span class="mark-chip">{{ student.marks_cap if student.marks_cap else '—' }} / 10</span>
+        </div>
+        <div class="mark-row total-row">
+            <span class="mark-label">📝 Total Marks</span>
+            <span class="mark-chip">{{ total_marks if total_marks else '0' }} / 100</span>
+        </div>
+    </div>
+ 
+  <div class="feedback-section">
+    <div class="feedback-title">Your Comments /Suggestion / Feedback</div>
+    <textarea class="feedback-textarea" id="feedbackText" placeholder="Share your suggestion here. Max 50 words." oninput="checkWords(this)"></textarea>
+    <div class="feedback-note" id="feedNote">Once message sent then it cannot be edited or resend again.</div>
+    <div class="feedback-bottom">
+      <button class="share-btn" onclick="shareFeedback()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+    </div>
+  </div>
+ 
+  <div class="footer">Release: {{ footer_date }}</div>
+</div>
+
+<div id="assignmentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; width: 90%; max-width: 450px; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: fadeIn 0.3s ease;">
+        <div style="background: #7b2fbe; color: white; padding: 15px 20px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+            <span id="modalTitle">Assignment Details</span>
+            <span onclick="closeAssignmentPopup()" style="cursor: pointer; font-size: 24px;">&times;</span>
+        </div>
+        <div style="padding: 25px;">
+            <p style="font-size: 14px; color: #888; margin-bottom: 10px; font-weight: 500;">DESCRIPTION:</p>
+            <p id="modalDescription" style="font-size: 16px; line-height: 1.6; color: #333; white-space: pre-wrap;"></p>
+        </div>
+        <div style="padding: 15px 20px; background: #f9f5ff; text-align: right;">
+            <button onclick="closeAssignmentPopup()" style="background: #7b2fbe; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 600; cursor: pointer;">OK</button>
+        </div>
     </div>
 </div>
 
+<style>
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+</style>
+ 
 <script>
-    document.getElementById('bar').style.width = "{{ width }}%";
-</script>
+  // Animate progress bar on load
+  setTimeout(() => {
+    document.getElementById('attBar').style.width = '{{ attendance_percentage }}%';
+  }, 300);
+ 
+  function toggleDetails() {
+    const table = document.getElementById('detailTable');
+    const chevron = document.getElementById('chevron');
+    table.classList.toggle('open');
+    chevron.textContent = table.classList.contains('open') ? '\u2303' : '\u2304';
+  }
+ 
+  function checkWords(el) {
+    const words = el.value.trim().split(/\s+/).filter(w => w.length > 0);
+    const note = document.getElementById('feedNote');
+    if (words.length > 50) {
+      el.value = words.slice(0, 50).join(' ');
+      note.textContent = 'Max 50 words reached.';
+      note.style.color = '#c0392b';
+    } else {
+      note.textContent = 'Once message sent then it cannot be edited or resend again.';
+      note.style.color = '#888';
+    }
+  }
+ 
+  async function shareFeedback() {
+    const txt = document.getElementById('feedbackText').value.trim();
+    if (!txt) { alert('Please enter your feedback before sharing.'); return; }
+    
+    // Optional: Add fetch call here to send feedback to database
+    alert('Feedback shared successfully! \u2713');
+    document.getElementById('feedbackText').disabled = true;
+    document.querySelector('.share-btn').disabled = true;
+  }
 
+    async function shareFeedback() {
+        const txt = document.getElementById('feedbackText').value.trim();
+        if (!txt) { alert('Please enter your feedback before sharing.'); return; }
+
+        const formData = new FormData();
+        formData.append('feedback', txt);
+
+        const response = await fetch('/submit-feedback', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            alert('Feedback shared successfully! \u2713');
+            document.getElementById('feedbackText').disabled = true;
+            document.querySelector('.share-btn').disabled = true;
+        } else {
+            const msg = await response.text();
+            alert(msg);
+        }
+    }
+
+    function showAssignmentPopup(title, description) {
+        const modal = document.getElementById('assignmentModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDesc = document.getElementById('modalDescription');
+
+        modalTitle.innerText = title;
+        modalDesc.innerText = description;
+        
+        // Use flex to ensure the modal is centered over the screen
+        modal.style.display = 'flex';
+    }
+
+    function closeAssignmentPopup() {
+        document.getElementById('assignmentModal').style.display = 'none';
+    }
+
+    // Close the modal if the user clicks anywhere outside of the white box
+    window.onclick = function(event) {
+        const modal = document.getElementById('assignmentModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+</script>
 </body>
 </html>

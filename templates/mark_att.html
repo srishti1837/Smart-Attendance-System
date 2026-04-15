@@ -83,12 +83,22 @@
                     }
 
                 }, (error) => {
-                    msg.style.color = "red";
-                    if (error.code === 1) {
-                        msg.innerText = "Error: Permission Denied. Please allow GPS access in your browser settings.";
-                    } else {
-                        msg.innerText = "Error: Location could not be determined. Try moving near a window.";
-                    }
+                        msg.style.color = "red";
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                msg.innerText = "Error: Please allow GPS access in your browser settings.";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                msg.innerText = "Error: Location information is unavailable. Try moving to a window.";
+                                break;
+                            case error.TIMEOUT:
+                                msg.innerText = "Error: Location request timed out. Retrying with lower accuracy...";
+                                // Optional: Call the function again with enableHighAccuracy: false
+                                break;
+                            case error.UNKNOWN_ERROR:
+                                msg.innerText = "An unknown error occurred.";
+                                break;
+                        }
                 }, options);
             } else {
                 msg.innerText = "Your browser does not support Geolocation.";

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enter Marks - {{ branch_id }}</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; background: #f5f0f5; padding: 30px; margin: 0; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #status-indicator { font-size: 13px; color: #888; transition: color 0.3s; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #e67e22; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        
+        input[type="number"] {
+            width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 5px;
+            outline: none; transition: border-color 0.3s;
+        }
+        input[type="number"]:focus { border-color: #e67e22; background: #fffcf9; }
+        
+        .footer-actions {
+            position: sticky; bottom: -30px; background: white; padding: 20px 0;
+            border-top: 1px solid #eee; margin-top: 20px; display: flex; justify-content: flex-end;
+        }
+        .btn-save-all {
+            background: #27ae60; color: white; border: none; padding: 12px 30px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
+        }
+        .btn-save-all:hover { background: #219150; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>📊 Enter Marks for {{ branch_id }}</h2>
+        <div id="status-indicator">All changes saved</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Enrollment No</th>
+                <th>Name</th>
+                <th>Mid Term (15)</th>
+                <th>End Term (60)</th>
+                <th>CAP (10)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr class="student-row" data-email="{{ s.email }}" data-enroll="{{ s.enrollment_no }}">
+                <td><b>{{ s.enrollment_no }}</b></td>
+                <td>{{ s.name }}</td>
+                <td><input type="number" step="0.1" class="mark-input" data-type="mid" value="{{ marks[s.email].mid_term if s.email in marks else '' }}" oninput="triggerAutoSave()"></td>
+                <td><input type="number" step="0.1" class="mark-input" data-type="end" value="{{ marks[s.email].end_term if s.email in marks else '' }}" oninput="triggerAutoSave()"></td>
+                <td><input type="number" step="0.1" class="mark-input" data-type="cap" value="{{ marks[s.email].cap_marks if s.email in marks else '' }}" oninput="triggerAutoSave()"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer-actions">
+        <button class="btn-save-all" onclick="saveAllMarks()">✅ Finalize & Save All</button>
+    </div>
+</div>
+
+<script>
+let autoSaveTimeout;
+
+// 1. Auto-Save Functionality (Debounced)
+function triggerAutoSave() {
+    const indicator = document.getElementById('status-indicator');
+    indicator.innerText = "Typing...";
+    indicator.style.color = "#e67e22";
+
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        saveAllMarks(true); // Call save automatically
+    }, 2000); // Saves 2 seconds after the user stops typing
+}
+
+// 2. The Main Save Function
+async function saveAllMarks(isAuto = false) {
+    const indicator = document.getElementById('status-indicator');
+    if (!isAuto) indicator.innerText = "Saving all records...";
+
+    const rows = document.querySelectorAll('.student-row');
+    const allData = [];
+
+    rows.forEach(row => {
+        allData.push({
+            email: row.getAttribute('data-email'),
+            mid: row.querySelector('[data-type="mid"]').value || 0,
+            end: row.querySelector('[data-type="end"]').value || 0,
+            cap: row.querySelector('[data-type="cap"]').value || 0
+        });
+    });
+
+    try {
+        const res = await fetch('/api/save-all-marks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                branch_id: "{{ branch_id }}",
+                marks_data: allData
+            })
+        });
+
+        if (res.ok) {
+            indicator.innerText = "✓ All changes saved";
+            indicator.style.color = "#27ae60";
+            if (!isAuto) alert("All marks successfully finalized!");
+        }
+    } catch (err) {
+        indicator.innerText = "⚠ Save failed. Check connection.";
+        indicator.style.color = "#c0392b";
+    }
+}
+
+// 3. Tab Close Prevention
+window.addEventListener('beforeunload', function (e) {
+    const indicator = document.getElementById('status-indicator').innerText;
+    if (indicator.includes("Typing")) {
+        e.preventDefault();
+        e.returnValue = ''; // Shows standard browser warning
+    }
+});
+</script>
+</body>
+</html>

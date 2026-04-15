@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mark Submissions - {{ branch_id }}</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; background: #f5f0f5; padding: 30px; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #00796b; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        .student-name { text-align: left; font-weight: 500; }
+        .date-label { font-size: 11px; color: #2e7d32; display: block; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Assignment Submissions: {{ branch_id }}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Enrollment No</th>
+                    <th style="text-align: left;">Student Name</th>
+                    {% for assn in assignments %}
+                        <th>{{ assn.title }} (Assn {{ loop.index }})</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td style="text-align: left;">{{ student.enrollment_no }}</td>
+                    <td class="student-name">{{ student.name }}</td>
+                    {% for assn in assignments %}
+                    <td>
+                        <input type="checkbox" 
+                               onchange="updateSubmission('{{ student.email }}', '{{ assn.id }}', this.checked)"
+                               {% if student.email in assn.submissions %}checked{% endif %}>
+                        <span id="date-{{ student.email|replace('.', '_') }}-{{ assn.id }}" class="date-label">
+                            {{ assn.submission_dates.get(student.email.replace('.', '_'), '') }}
+                        </span>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+    async function updateSubmission(email, assnId, isChecked) {
+        const response = await fetch('/api/update-assignment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                branch_id: "{{ branch_id }}",
+                email: email,
+                assignment_id: assnId,
+                status: isChecked
+            })
+        });
+        
+        const result = await response.json();
+        // Update the date label instantly
+        const dateElement = document.getElementById(`date-${email.replace('.', '_')}-${assnId}`);
+        dateElement.innerText = result.date || "";
+    }
+    </script>
+</body>
+</html>

@@ -91,75 +91,115 @@
     </style>
 </head>
 <body>
-
 <div style="max-width: 1000px; margin: 40px auto; padding: 0 20px;">
     
-    <div class="admin-header">
+    <div class="admin-header" style="background: #9c27b0; color: white; padding: 30px; border-radius: 15px; margin-bottom: 20px;">
         <h2 style="margin: 0;">Professor Control Panel</h2>
-        <p style="margin: 10px 0 0 0; opacity: 0.8;">Welcome, {{ user.name }}</p>
+        <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1em;">Welcome, {{ user.name }}</p>
     </div>
 
-    <div class="branch-nav">
+    <div class="branch-nav" style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px;">
         {% for branch in branches %}
             <button class="branch-btn {% if loop.first %}active{% endif %}" 
-                    onclick="switchBranch('{{ branch }}')">
-                {{ branch }}
+                    onclick="switchBranch('{{ branch.id }}', this)"> 
+                {{ branch.id }}
             </button>
         {% endfor %}
-        <button class="branch-btn btn-add" onclick="toggleAddBranchModal(true)" style="background: #4caf50; color: white;">
+        <button class="branch-btn btn-add" onclick="toggleAddBranchModal(true)" 
+                style="background: #4caf50; color: white; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer;">
             + Add Branch
         </button>
     </div>
 
-    <div class="main-grid">
-        <div>
-            <h3 id="active-branch-title">Branch: {{ branches[0] if branches else 'None' }}</h3>
-            <p><b>Attendance Management</b></p>
-            
-            <button onclick="startAttendance()" class="btn-action btn-qr">
-                🚀 Start Attendance QR
-            </button>
+    {% if branches %}
+    <div id="management-panel" style="background: white; border: 2px solid #333; border-radius: 15px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        
+        <h3 id="active-branch-title" style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 25px;">
+            Selected Branch: {{ branches[0].id }}
+        </h3>
 
-            <div id="qr-container" class="qr-placeholder">
-                QR will appear in live window
-            </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: flex-start;">
             
-            <button onclick="stopAttendance()" class="btn-action" style="background: #e53935; margin-top: 10px;">
-                🛑 Stop Session
+            <div style="flex: 1; min-width: 200px; text-align: center;">
+                <button onclick="startAttendance(currentBranch)" class="btn-start" 
+                        style="background: #9c27b0; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
+                    🚀 Mark Attendance
+                </button>
+            </div>
+
+            <div style="flex: 1; min-width: 200px; text-align: center;">
+                <button onclick="window.open('/professor/mark-assignments/' + currentBranch, '_blank')" 
+                        style="background: #00796b; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
+                    📝 Mark Submissions
+                </button>
+            </div>
+
+            <div style="flex: 1; min-width: 200px; text-align: center;">
+                <button onclick="window.open('/professor/add-marks/' + currentBranch, '_blank')" 
+                        style="background: #e67e22; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
+                    📊 Add Marks
+                </button>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+            <button onclick="toggleAddAssignmentModal(true)" 
+                    style="background: white; color: #333; border: 2px solid #333; padding: 12px 40px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">
+                ➕ Add Assignment
             </button>
         </div>
 
-        <div>
-            <p style="margin-top: 40px;"><b>Assignment Marking</b></p>
-            <button onclick="saveAssignments()" class="btn-action btn-mark">
-                📝 Mark Submissions
+        <div style="margin-top: 15px; text-align: center;">
+            <button onclick="window.open('/professor/view-comments', '_blank')" 
+                    style="background: #2196F3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
+                💬 View Comments
             </button>
-
-            <div id="assignment-list">
-                <p style="color: gray; font-size: 0.9em;">Select a branch to view students</p>
-            </div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <div id="addBranchModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="background: white; width: 300px; margin: 100px auto; padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+    <div style="background: white; width: 300px; margin: 100px auto; padding: 25px; border-radius: 15px; text-align: center;">
         <h3>Add New Branch</h3>
-        <input type="text" id="newBranchName" placeholder="e.g., CS-A" 
-               style="width: 85%; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 5px; text-transform: uppercase;">
-        <br>
-        <button onclick="submitNewBranch()" style="background: #9c27b0; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%;">
-            Create Branch
+        <input type="text" id="newBranchName" placeholder="e.g., IT2" style="width: 100%; padding: 10px; margin-bottom: 15px; text-transform: uppercase;">
+        <button onclick="submitNewBranch()" style="background: #4caf50; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer;">Create</button>
+        <button onclick="toggleAddBranchModal(false)" style="background: none; border: none; color: gray; margin-top: 10px; cursor: pointer;">Cancel</button>
+    </div>
+</div>
+
+<div id="addAssignmentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; width: 400px; margin: 80px auto; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+        <h3 style="margin-bottom: 20px; color: #333;">Create New Assignment</h3>
+        
+        <input type="number" id="assnNum" placeholder="Assignment No (e.g., 1)" 
+               style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px;">
+        
+        <input type="text" id="assnTitle" placeholder="Assignment Name" 
+               style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px;">
+        
+        <textarea id="assnDesc" placeholder="Assignment Description" 
+                  style="width: 100%; padding: 12px; height: 100px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit;"></textarea>
+        
+        <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Submission Deadline:</label>
+        <input type="date" id="assnDeadline" 
+               style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        
+        <button onclick="submitNewAssignment()" 
+                style="background: #9c27b0; color: white; border: none; padding: 14px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; font-size: 16px;">
+            🚀 Publish Assignment
         </button>
-        <button onclick="toggleAddBranchModal(false)" style="background: none; border: none; color: gray; margin-top: 10px; cursor: pointer;">
+        
+        <button onclick="toggleAddAssignmentModal(false)" 
+                style="background: none; border: none; color: #888; margin-top: 15px; cursor: pointer; width: 100%; font-size: 14px;">
             Cancel
         </button>
     </div>
 </div>
 
 <script>
-    // Initialize currentBranch with the first branch from Python
-    let currentBranch = "{{ branches[0] if branches else '' }}";
+    // Initializing currentBranch correctly from the first available branch
+    let currentBranch = "{{ branches[0].id if branches else '' }}";
 
     function toggleAddBranchModal(show) {
         document.getElementById('addBranchModal').style.display = show ? 'block' : 'none';
@@ -169,70 +209,124 @@
         const branchName = document.getElementById('newBranchName').value.trim().toUpperCase();
         if (!branchName) return alert("Enter branch name");
 
-        const response = await fetch('/api/create-branch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ branch_name: branchName })
-        });
+        try {
+            const response = await fetch('/api/create-branch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ branch_name: branchName })
+            });
 
-        if (response.ok) {
-            location.reload(); // Refresh to update the branch navigation buttons
-        } else {
-            const err = await response.json();
-            alert("Error: " + err.error);
+            if (response.ok) {
+                location.reload(); 
+            } else {
+                const err = await response.json();
+                alert("Error: " + err.error);
+            }
+        } catch (e) {
+            alert("Connection error.");
         }
     }
 
-    function switchBranch(branch) {
+    function switchBranch(branch, element) {
         currentBranch = branch;
-        document.getElementById('active-branch-title').innerText = "Branch: " + branch;
+        document.getElementById('active-branch-title').innerText = "Selected Branch: " + branch;
         
-        // Update button UI
+        // Update button UI (Highlighting active branch)
         document.querySelectorAll('.branch-btn').forEach(btn => btn.classList.remove('active'));
-        if (event) event.target.classList.add('active');
-
-        // Load the student list for assignment marking
-        loadAssignmentData(branch);
+        if (element) {
+            element.classList.add('active');
+        } else {
+            // Fallback for initial load
+            const buttons = document.querySelectorAll('.branch-btn');
+            buttons.forEach(btn => {
+                if(btn.innerText.trim() === branch) btn.classList.add('active');
+            });
+        }
     }
 
-    async function loadAssignmentData(branchId) {
-        const res = await fetch(`/api/users/${branchId}`);
-        if (!res.ok) return;
-        
-        const students = await res.json();
-        const listContainer = document.getElementById('assignment-list');
-        listContainer.innerHTML = "";
+    // Function to handle GPS and start attendance
+    function startAttendance(branchId) {
+        if (!branchId) return alert("Select a branch first.");
 
-        if (students.length === 0) {
-            listContainer.innerHTML = "<p>No students registered in this branch.</p>";
+        const titleText = document.getElementById('active-branch-title').innerText;
+        if (titleText.includes("(Active)")) {
+            alert("A session is already in progress.");
             return;
         }
 
-        students.forEach(s => {
-            listContainer.innerHTML += `
-                <div class="assignment-row" style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
-                    <span>${s.name} <small>(${s.enrollment_no})</small></span>
-                    <div>
-                        <input type="checkbox" class="assn-check" data-email="${s.email}" data-id="assn1">
-                    </div>
-                </div>`;
+        const startBtn = event.target; 
+        startBtn.disabled = true;
+        startBtn.innerText = "Initializing GPS...";
+
+        if (!navigator.geolocation) {
+            alert("GPS not supported.");
+            startBtn.disabled = false;
+            startBtn.innerText = "🚀 Mark Attendance";
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const formData = new FormData();
+            formData.append('branch_id', branchId);
+            formData.append('lat', position.coords.latitude);
+            formData.append('lng', position.coords.longitude);
+
+            try {
+                const response = await fetch('/professor/start-attendance', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    window.open(`/professor/live-session/${branchId}`, '_blank');
+                    location.reload(); 
+                } else {
+                    alert(result.message);
+                    location.reload();
+                }
+            } catch (err) {
+                alert("Server Error.");
+                startBtn.disabled = false;
+                startBtn.innerText = "🚀 Mark Attendance";
+            }
+        }, (error) => {
+            alert("GPS Access Denied.");
+            startBtn.disabled = false;
+            startBtn.innerText = "🚀 Mark Attendance";
+        }, { enableHighAccuracy: true });
+    }
+
+    function toggleAddAssignmentModal(show) {
+        // Ensure this modal exists in your HTML (as provided in previous step)
+        const modal = document.getElementById('addAssignmentModal');
+        if(modal) modal.style.display = show ? 'block' : 'none';
+    }
+
+    async function submitNewAssignment() {
+        const num = document.getElementById('assnNum').value;
+        const title = document.getElementById('assnTitle').value;
+        const desc = document.getElementById('assnDesc').value;
+        const deadline = document.getElementById('assnDeadline').value;
+
+        if(!num || !title || !currentBranch) return alert("Please fill details and select branch");
+
+        const response = await fetch('/api/create-assignment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                branch_id: currentBranch,
+                num: num,
+                title: title,
+                desc: desc,
+                deadline: deadline
+            })
         });
-    }
 
-    function startAttendance() {
-        if (!currentBranch) return alert("Select a branch first");
-        window.open(`/professor/live-session/${currentBranch}`, '_blank', 'width=1200,height=800');
-    }
-
-    async function stopAttendance() {
-        const response = await fetch(`/professor/stop-attendance/${currentBranch}`);
-        if(response.ok) {
-            alert("Attendance Session Closed.");
+        if (response.ok) {
+            alert("Assignment Published!");
+            toggleAddAssignmentModal(false);
         }
     }
-
-    // Load initial data on page load
-    window.onload = () => {
-        if (currentBranch) loadAssignmentData(currentBranch);
-    };
 </script>
+</body>

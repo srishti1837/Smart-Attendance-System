@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Global Student Feedback</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; background: #f5f0f5; padding: 40px; }
+        .comment-container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #7b2fbe; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .branch-badge { background: #e1bee7; color: #7b2fbe; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="comment-container">
+        <h2>📢 Student Suggestions & Feedback</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Branch</th>
+                    <th>Enrollment</th>
+                    <th>Name</th>
+                    <th>Message (Max 50 Words)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in comments %}
+                <tr>
+                    <td><span class="branch-badge">{{ c.branch }}</span></td>
+                    <td><b>{{ c.enrollment_no }}</b></td>
+                    <td>{{ c.name }}</td>
+                    <td style="color: #444; line-height: 1.4;">"{{ c.comment }}"</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: gray;">No feedback submitted yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

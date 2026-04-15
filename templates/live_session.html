@@ -11,29 +11,35 @@
     </style>
 </head>
 <body style="background: #fdf7fc;">
-    <div class="header-bar" style="background: #9c27b0; color: white; padding: 15px;">
-        <h2>Live Session: {{ branch_id }}</h2>
-        <button onclick="window.close()" style="background: white; color: black; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">Close Session</button>
+<div class="header-bar" style="background: #9c27b0; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin:0;">Live Session: {{ branch_id }}</h2>
+        <button onclick="endSessionAndClose()" style="background: white; color: black; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+            End & Close Session
+        </button>
     </div>
 
-    <div class="live-grid">
-        <div class="card" style="text-align: center;">
+    <div class="live-grid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; padding: 20px;">
+        <div class="card" style="text-align: center; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3>Scan for Attendance</h3>
-            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 10px; border-radius: 10px;">
-                Loading QR...
+            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 10px; border-radius: 10px; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                <p>Loading QR...</p>
             </div>
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">Students must be within 30m</p>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">Students must verify identity & GPS (30m)</p>
         </div>
 
-        <div class="card">
-            <h3>Headcount: <span id="present-count">0</span></h3>
-            <table>
+        <div class="card" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h3>
+                <span id="sync-indicator" style="font-size: 12px; color: green;">● Live Syncing</span>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr style="background: #f3e5f5;">
-                        <th>Enrollment</th>
-                        <th>Name</th>
-                        <th>Attendance</th>
-                        <th>Proxy Flag</th>
+                    <tr style="background: #f3e5f5; text-align: left;">
+                        <th style="padding: 10px;">Enrollment</th>
+                        <th style="padding: 10px;">Name</th>
+                        <th style="padding: 10px;">Status</th>
+                        <th style="padding: 10px;">Proxy Flag</th>
                     </tr>
                 </thead>
                 <tbody id="student-table">
@@ -45,50 +51,88 @@
     <script>
         const branchId = "{{ branch_id }}";
 
-        // 1. Fetch QR once
+        // 1. Fetch QR once - Ensure the QR URL includes the latest token
         async function loadQR() {
             const res = await fetch(`/generate_qr/${branchId}`);
             const data = await res.text();
-            document.getElementById('qr-box').innerHTML = `<img src="${data}" width="100%">`;
+            if (data.includes("data:image")) {
+                document.getElementById('qr-box').innerHTML = `<img src="${data}" width="100%" style="display:block;">`;
+            } else {
+                document.getElementById('qr-box').innerText = "Session Not Active";
+            }
         }
 
         // 2. Poll Student List every 3 seconds
         async function updateList() {
-            const res = await fetch(`/api/get-branch-students/${branchId}`);
-            const students = await res.json();
-            
-            const table = document.getElementById('student-table');
-            let presentCount = 0;
-            table.innerHTML = "";
-
-            students.forEach(s => {
-                if(s.is_present) presentCount++;
-                const statusClass = s.is_present ? 'present' : 'absent';
+            try {
+                // IMPORTANT: Ensure this API endpoint in app.py looks for the ACTIVE session
+                const res = await fetch(`/api/users/${branchId}`);
+                if (!res.ok) throw new Error("Failed to fetch");
                 
-                table.innerHTML += `
-                    <tr class="${statusClass}">
-                        <td>${s.enrollment_no}</td>
-                        <td>${s.name}</td>
-                        <td>${s.is_present ? '✅ Present' : '❌ Absent'}</td>
-                        <td>
-                            <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
-                                   onchange="toggleProxy('${s.email}', this.checked)">
-                        </td>
-                    </tr>`;
-            });
-            document.getElementById('present-count').innerText = presentCount;
+                const students = await res.json();
+                
+                const table = document.getElementById('student-table');
+                let presentCount = 0;
+                table.innerHTML = "";
+
+                students.forEach(s => {
+                    if(s.is_present) presentCount++;
+                    const statusColor = s.is_present ? '#e8f5e9' : 'transparent';
+                    const statusText = s.is_present ? '✅ Present' : '❌ Absent';
+                    const statusClass = s.is_present ? 'status-present' : 'status-absent';
+                    
+                    table.innerHTML += `
+                        <tr style="background: ${statusColor}; border-bottom: 1px solid #eee;">
+                            <td style="padding: 10px;">${s.enrollment_no}</td>
+                            <td style="padding: 10px;">${s.name}</td>
+                            <td style="padding: 10px; font-weight: bold; color: ${s.is_present ? 'green' : '#999'}">${statusText}</td>
+                            <td style="padding: 10px; text-align: center;">
+                                <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
+                                       onchange="toggleProxy('${s.email}', this.checked)"
+                                       style="cursor: pointer; transform: scale(1.2);">
+                            </td>
+                        </tr>`;
+                });
+                document.getElementById('present-count').innerText = presentCount;
+            } catch (err) {
+                console.error("Polling error:", err);
+                document.getElementById('sync-indicator').innerText = "○ Disconnected";
+                document.getElementById('sync-indicator').style.color = "red";
+            }
         }
 
         async function toggleProxy(email, status) {
+            const formData = new FormData();
+            formData.append('email', email);
+            formData.append('branch_id', branchId);
+            formData.append('status', status);
+
             await fetch('/api/toggle-proxy', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `email=${email}&status=${status}`
+                body: formData
             });
         }
 
+        
+        async function endSessionAndClose() {
+            if(confirm("Are you sure you want to end this attendance session?")) {
+                // Tell the server to mark the session as 'closed' in Firestore
+                const response = await fetch(`/professor/stop-attendance/${branchId}`);
+                if(response.ok) {
+                    window.close(); // Only close the window after the DB is updated
+                }
+            }
+        }
+        // Initialize
         loadQR();
-        setInterval(updateList, 3000); // Live update
+        updateList(); // Run once immediately
+        setInterval(updateList, 3000); // Then poll every 3 seconds
     </script>
+
+    <style>
+        .card { transition: transform 0.2s; }
+        th { border-bottom: 2px solid #9c27b0; }
+        .status-present { font-weight: bold; color: green; }
+    </style>
 </body>
 </html>
