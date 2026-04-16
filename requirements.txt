@@ -2,3 +2,4 @@ flask
 firebase-admin
 geopy
 python-dotenv
+gunicorn

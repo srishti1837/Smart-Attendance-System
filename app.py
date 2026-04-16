@@ -8,6 +8,7 @@ import io
 import base64
 import secrets # Used for dynamic tokens
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_attendance_key' 
@@ -652,5 +653,5 @@ def save_all_marks():
         return jsonify({"status": "error", "message": str(e)}), 500
     
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
