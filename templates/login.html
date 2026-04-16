@@ -3,33 +3,56 @@
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <title>DevOps Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid;
+            text-align: center;
+        }
+        .alert-error, .alert-danger { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
+        .alert-success { background-color: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+    </style>
 </head>
 <body>
     <div class="card">
-        <div style="font-size: 50px; color: var(--primary-purple);">🏛️</div>
-        <h3>Fundamental of DevOps</h3>
+        <div style="font-size: 50px; color: var(--primary-purple); margin-bottom: 10px;">🏛️</div>
+        <h3 style="margin-bottom: 25px;">Fundamental of DevOps</h3>
         
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            {% for message in messages %}
-              <div style="color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border: 1px solid #ffcdd2; font-weight: 500;">
-                ⚠️ {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {% if category == 'success' %}✅{% else %}⚠️{% endif %} {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
         {% endwith %}
 
         <form action="/login" method="POST">
-            <input type="email" name="email" placeholder="📧 Email ID" required>
-            <input type="password" name="password" placeholder="🔒 Password" required>
-            <button type="submit" class="btn-primary" style="margin-top: 15px;">LOGIN</button>
+            <input type="email" name="email" placeholder="📧 Email ID" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            <input type="password" name="password" placeholder="🔒 Password" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 5px;">LOGIN</button>
         </form>
 
-        <hr style="margin: 25px 0; border: 0; border-top: 1px solid #eee;">
+        <div style="margin: 25px 0; display: flex; align-items: center; text-align: center; color: #aaa;">
+            <div style="flex: 1; border-bottom: 1px solid #eee;"></div>
+            <span style="padding: 0 10px; font-size: 12px;">OR</span>
+            <div style="flex: 1; border-bottom: 1px solid #eee;"></div>
+        </div>
 
         <form action="/register-check" method="POST">
-            <input type="text" name="reg_code" placeholder="🔑 New User? Enter Code here">
-            <button type="submit" class="btn-register">You can Register here Now</button>
+            <input type="text" name="reg_code" placeholder="🔑 New User? Enter Code here" 
+                   style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            <button type="submit" class="btn-register" style="width: 100%; background: #f3e5f5; color: #9c27b0; border: 1px solid #9c27b0; padding: 12px; border-radius: 25px; cursor: pointer; font-weight: bold;">
+                Verify Registration Code
+            </button>
         </form>
     </div>
 </body>

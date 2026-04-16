@@ -30,92 +30,110 @@ def register_prof_page():
 
 @app.route('/register-check', methods=['POST'])
 def register_check():
-    # Get the code from the form
-    code = request.form.get('reg_code', '').strip()
+    code = (request.form.get('reg_code') or '').strip()
     
-    # Get the codes from Render Environment Variables
-    admin_secret = os.getenv('ADMIN_REG_CODE')
-    student_secret = os.getenv('STUDENT_REG_CODE')
+    admin_secret = os.getenv('ADMIN_REG_CODE', '')
+    student_secret = os.getenv('STUDENT_REG_CODE', '')
+
+    if not code:
+        flash("Please enter a registration code.", "error")
+        return redirect(url_for('index')) # Point to your main page function
+
+    if code == admin_secret and admin_secret != '':
+        # We pass the code to the template so the Prof form can 're-verify' it on submission
+        return render_template('register_prof.html', pass_code=code)
     
-    if code == admin_secret:
-        return render_template('register_prof.html')
-    
-    elif code == student_secret:
+    elif code == student_secret and student_secret != '':
         try:
             branches_ref = db.collection('branches').stream()
             branches_list = [doc.id for doc in branches_ref]
+            # Students don't need the secret passed because they select a branch
             return render_template('register.html', branches=branches_list)
         except Exception as e:
             return render_template('register.html', branches=[])
     
     else:
-        # This sends the message to the next page the user sees
-        flash("Invalid Registration Code! Please contact your Professor.")
-        return redirect(url_for('login_page')) # Use the name of your login function
+        flash("Invalid Registration Code! Please contact your Professor.", "error")
+        return redirect(url_for('index'))
+    
 
 @app.route('/api/register', methods=['POST'])
 def handle_registration():
     try:
         # 1. Capture Form Data
-        email = request.form.get('email')
+        email = request.form.get('email', '').strip().lower()
         name = request.form.get('name')
         enrollment = request.form.get('enrollment')
-        branch = request.form.get('branch', '').strip().upper() # e.g., "IT2"
+        branch = request.form.get('branch', '').strip().upper()
         password = hash_password(request.form.get('password'))
         
-        # Determine if Admin based on your code
-        prof_code = request.form.get('prof_admin_code', '').strip()
-        role_flag = 1 if prof_code == "ADMIN2026" else 0
+        # 2. Security Check (Admin Key)
+        submitted_code = request.form.get('prof_admin_code', '').strip()
+        admin_secret = os.getenv('ADMIN_REG_CODE', '')
+        student_secret = os.getenv('STUDENT_REG_CODE', '')
 
+        # Determine Role
+        is_prof = (submitted_code == admin_secret and admin_secret != '')
+        is_student = (submitted_code == student_secret and student_secret != '')
+
+        # SECURITY GATE: If code matches neither secret, STOP immediately
+        if not is_prof and not is_student:
+            flash("Invalid Registration Code! No account created.", "error")
+            return redirect(url_for('index')) 
+
+        # 3. Create User Data
+        role_flag = 1 if is_prof else 0
         user_data = {
             'name': name,
             'email': email,
             'enrollment_no': enrollment,
-            'branch': branch,
+            'branch': branch if role_flag == 0 else "ADMIN",
             'password': password,
             'is_admin': role_flag,
             'proxy_flag': False
         }
 
-        # 2. SAVE TO ROOT COLLECTION (For Login)
+        # 4. SAVE TO ROOT COLLECTION
         db.collection('users').document(email).set(user_data)
 
-        # 3. SAVE TO BRANCH-SPECIFIC COLLECTION (For Attendance/Lists)
+        # 5. SAVE TO BRANCH SILO (Only for Students)
         if role_flag == 0 and branch:
-            # This creates the document in IT2_users specifically
             db.collection(f"{branch}_users").document(email).set(user_data)
-            print(f"DEBUG: Student added to {branch}_users silo.")
 
-        flash("Registration Successful!")
-        return redirect(url_for('index'))
+        flash("Registration Successful! Please Login.", "success")
+        return redirect(url_for('index')) # Redirect to login
 
     except Exception as e:
         print(f"Registration Error: {e}")
-        return redirect(url_for('index'))
+        flash("Registration failed. Server error occurred.", "error")
+        return redirect(url_for('index')) 
+    
 
 
 @app.route('/login', methods=['POST'])
 def login():
     session.clear()
-    email = request.form.get('email')
+    email = request.form.get('email', '').strip().lower()
     password = hash_password(request.form.get('password'))
     
     user_doc = db.collection('users').document(email).get()
     
     if user_doc.exists:
         user_data = user_doc.to_dict()
-        if user_data['password'] == password:
-            # --- FIX: Save specific keys for the dashboard ---
-            session['user'] = user_data
-            session['user_email'] = email            # Added this
-            session['branch_id'] = user_data['branch'] # Added this (fetches "IT2")
+        if user_data.get('password') == password:
+            session['user_email'] = email
+            session['branch_id'] = user_data.get('branch')
             
-            if str(user_data.get('is_admin')) == '1':
+            # Use .get() and cast to int/str to avoid errors if the field is missing
+            is_admin = user_data.get('is_admin', 0)
+            
+            if str(is_admin) == '1' or is_admin is True:
                 return redirect(url_for('professor_dashboard'))
             return redirect(url_for('student_dashboard'))
     
-    flash("Invalid Credentials!")
-    return redirect(url_for('index'))
+    # If we reach here, login failed
+    flash("Invalid Email or Password!", "error")
+    return redirect(url_for('index')) # Matches your main page function
 
 
 
