@@ -6,24 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-    <div class="card" style="max-width: 400px; margin: 50px auto; padding: 20px; text-align: center;">
+    <div class="card" style="max-width: 400px; margin: 50px auto; padding: 20px; text-align: center; background: white; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
         <h3 style="color: #9c27b0;">Verification Required</h3>
         <p>Branch: <b>{{ branch_id }}</b></p>
         
         <form id="att-form">
             <input type="text" id="enrollment" placeholder="Enrollment No" required 
-                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; box-sizing: border-box;">
             
             <input type="password" id="password" placeholder="Verify Password" required 
-                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                   style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd; box-sizing: border-box;">
             
-            <button type="button" onclick="getLocationAndSubmit()" class="btn-primary" 
+            <button type="button" onclick="submitAttendance()" class="btn-primary" 
                     style="background: #9c27b0; color: white; width: 100%; padding: 12px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold;">
-                Confirm My Presence 📍
+                Confirm My Presence
             </button>
         </form>
         
-        <p id="status-msg" style="margin-top: 15px; font-size: 14px; font-weight: 500;"></p>
+        <p id="status-msg" style="margin-top: 15px; font-size: 14px; font-weight: 500; min-height: 20px;"></p>
     </div>
 
     <script>
@@ -32,7 +32,6 @@
             const enrollment = document.getElementById('enrollment').value;
             const password = document.getElementById('password').value;
 
-            // Simple validation
             if(!enrollment || !password) {
                 msg.innerText = "Please enter both Enrollment No and Password.";
                 msg.style.color = "red";
@@ -42,7 +41,6 @@
             msg.innerText = "Submitting attendance... please wait.";
             msg.style.color = "blue";
 
-            // Data payload WITHOUT lat and lng
             const payload = {
                 enrollment: enrollment,
                 password: password,
@@ -54,18 +52,19 @@
                 const response = await fetch('/submit-attendance', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    // We send the payload as URLSearchParams so Flask's request.form can read it
                     body: new URLSearchParams(payload)
                 });
 
                 const result = await response.text();
-                msg.innerText = result;
                 
                 if (response.ok) {
                     msg.style.color = "green";
-                    // Success! Hide the form
+                    msg.innerText = "✅ " + result;
                     document.getElementById('att-form').style.display = 'none';
                 } else {
                     msg.style.color = "red";
+                    msg.innerText = "❌ " + result;
                 }
             } catch (err) {
                 msg.innerText = "Server Error. Please check your connection.";
