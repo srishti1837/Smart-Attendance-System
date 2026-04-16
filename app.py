@@ -34,8 +34,12 @@ def register_prof_page():
     return render_template('register_prof.html')
 
 
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+
 @app.route('/register-check', methods=['POST'])
 def register_check():
+    # 1. Capture the code entered on the login page
     code = (request.form.get('reg_code') or '').strip()
     
     admin_secret = os.getenv('ADMIN_REG_CODE', '')
@@ -43,25 +47,25 @@ def register_check():
 
     if not code:
         flash("Please enter a registration code.", "error")
-        return redirect(url_for('index')) # Point to your main page function
+        return redirect(url_for('index'))
 
+    # PROFESSOR PATH
     if code == admin_secret and admin_secret != '':
-        # We pass the code to the template so the Prof form can 're-verify' it on submission
         return render_template('register_prof.html', pass_code=code)
     
+    # STUDENT PATH
     elif code == student_secret and student_secret != '':
         try:
             branches_ref = db.collection('branches').stream()
             branches_list = [doc.id for doc in branches_ref]
-            # Students don't need the secret passed because they select a branch
-            return render_template('register.html', branches=branches_list)
+            # CRITICAL: Pass 'reg_code=code' so the HTML can "remember" it
+            return render_template('register.html', branches=branches_list, reg_code=code)
         except Exception as e:
-            return render_template('register.html', branches=[])
+            return render_template('register.html', branches=[], reg_code=code)
     
     else:
         flash("Invalid Registration Code! Please contact your Professor.", "error")
         return redirect(url_for('index'))
-    
 
 @app.route('/api/register', methods=['POST'])
 def handle_registration():
@@ -73,21 +77,20 @@ def handle_registration():
         branch = request.form.get('branch', '').strip().upper()
         password = hash_password(request.form.get('password'))
         
-        # 2. Security Check (Admin Key)
+        # 2. Security Check (Reads from the hidden input field)
         submitted_code = request.form.get('prof_admin_code', '').strip()
         admin_secret = os.getenv('ADMIN_REG_CODE', '')
         student_secret = os.getenv('STUDENT_REG_CODE', '')
 
-        # Determine Role
         is_prof = (submitted_code == admin_secret and admin_secret != '')
         is_student = (submitted_code == student_secret and student_secret != '')
 
-        # SECURITY GATE: If code matches neither secret, STOP immediately
+        # STOP if the code sent by the form doesn't match our secrets
         if not is_prof and not is_student:
             flash("Invalid Registration Code! No account created.", "error")
-            return redirect(url_for('index')) 
+            return redirect(url_for('index'))
 
-        # 3. Create User Data
+        # 3. Save Logic
         role_flag = 1 if is_prof else 0
         user_data = {
             'name': name,
@@ -99,20 +102,16 @@ def handle_registration():
             'proxy_flag': False
         }
 
-        # 4. SAVE TO ROOT COLLECTION
         db.collection('users').document(email).set(user_data)
-
-        # 5. SAVE TO BRANCH SILO (Only for Students)
         if role_flag == 0 and branch:
             db.collection(f"{branch}_users").document(email).set(user_data)
 
         flash("Registration Successful! Please Login.", "success")
-        return redirect(url_for('index')) # Redirect to login
+        return redirect(url_for('index'))
 
     except Exception as e:
-        print(f"Registration Error: {e}")
-        flash("Registration failed. Server error occurred.", "error")
-        return redirect(url_for('index')) 
+        flash("Registration failed. Server error.", "error")
+        return redirect(url_for('index'))
     
 
 

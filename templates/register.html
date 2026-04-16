@@ -5,33 +5,38 @@
     <title>Student Registration</title>
 </head>
 <body>
-    <div class="card" style="max-width: 450px;">
-        <h2 style="color: var(--primary-purple);">Student Registration</h2>
+    <div class="card" style="max-width: 450px; margin: 50px auto; padding: 30px;">
+        <h2 style="color: #9c27b0; margin-bottom: 20px;">Student Registration</h2>
+        
         <form action="/api/register" method="POST">
-            <input type="text" name="name" placeholder="Full Name" required>
-            <input type="email" name="email" placeholder="Email Address" required>
-            <input type="text" name="enrollment" placeholder="Enrollment No" required>
+            <input type="hidden" name="prof_admin_code" value="{{ reg_code }}">
+
+            <input type="text" name="name" placeholder="Full Name" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box;">
             
-            <select name="branch" required style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ddd;">
+            <input type="email" name="email" placeholder="Email Address" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box;">
+            
+            <input type="text" name="enrollment" placeholder="Enrollment No" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box;">
+            
+            <select name="branch" required style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;">
                 <option value="" disabled selected>Select your Branch</option>
                 {% if branches %}
-                    {% for branch in branches %}
-                        <option value="{{ branch }}">{{ branch }}</option>
+                    {% for b in branches %}
+                        <option value="{{ b }}">{{ b }}</option>
                     {% endfor %}
-                {% else %}
-                    <option value="" disabled>No branches available. Contact Admin.</option>
                 {% endif %}
             </select>
 
-            <input type="password" name="password" placeholder="Create Password" required>
+            <input type="password" name="password" placeholder="Create Password" required 
+                   style="width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box;">
             
-            <input type="hidden" name="prof_admin_code" value="">
-
-            <button type="submit" class="btn-primary" style="background: var(--primary-purple); color: white;">
+            <button type="submit" class="btn-primary" style="background: #9c27b0; color: white; width: 100%; padding: 14px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold;">
                 Complete Registration
             </button>
         </form>
-        <p><a href="/" style="color: var(--text-gray); font-size: 14px;">Back to Login</a></p>
+        <p style="text-align: center; margin-top: 15px;"><a href="/" style="color: #999; text-decoration: none; font-size: 14px;">Back to Login</a></p>
     </div>
 </body>
 </html>
