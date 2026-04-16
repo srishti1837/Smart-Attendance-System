@@ -93,10 +93,22 @@
 <body>
 <div style="max-width: 1000px; margin: 40px auto; padding: 0 20px;">
     
-    <div class="admin-header" style="background: #9c27b0; color: white; padding: 30px; border-radius: 15px; margin-bottom: 20px;">
-        <h2 style="margin: 0;">Professor Control Panel</h2>
-        <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1em;">Welcome, {{ user.name }}</p>
-    </div>
+    
+    <div class="admin-header" style="background: #9c27b0; color: white; padding: 30px; border-radius: 15px; margin-bottom: 20px; position: relative;">
+    
+    <h2 style="margin: 0;">Professor Control Panel</h2>
+    
+    <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1em;">
+        Welcome, {{ user.name }}
+    </p>
+
+    <a href="/logout" style="position: absolute; top: 20px; right: 20px;">
+        <button style="background: red; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+            Logout
+        </button>
+    </a>
+
+</div>
 
     <div class="branch-nav" style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px;">
         {% for branch in branches %}
