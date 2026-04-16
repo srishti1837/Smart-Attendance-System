@@ -7,8 +7,18 @@
 <body>
     <div class="card">
         <div style="font-size: 50px; color: var(--primary-purple);">🏛️</div>
-        <h3>Fundamental of DevOps - AIML/IT1/IT2</h3>
+        <h3>Fundamental of DevOps</h3>
         
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div style="color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border: 1px solid #ffcdd2; font-weight: 500;">
+                ⚠️ {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         <form action="/login" method="POST">
             <input type="email" name="email" placeholder="📧 Email ID" required>
             <input type="password" name="password" placeholder="🔒 Password" required>

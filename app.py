@@ -10,7 +10,7 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_attendance_key' 
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev_key_only')
 
 # --- HELPER FUNCTIONS ---
 def hash_password(password):
@@ -30,36 +30,28 @@ def register_prof_page():
 
 @app.route('/register-check', methods=['POST'])
 def register_check():
-    code = request.form.get('reg_code')
+    # Get the code from the form
+    code = request.form.get('reg_code', '').strip()
     
-    # 1. If they are a Professor
-    if code == "ADMIN2026":
+    # Get the codes from Render Environment Variables
+    admin_secret = os.getenv('ADMIN_REG_CODE')
+    student_secret = os.getenv('STUDENT_REG_CODE')
+    
+    if code == admin_secret:
         return render_template('register_prof.html')
     
-    # 2. If they are a Student
-    elif code == "DEV123":
+    elif code == student_secret:
         try:
-            # FETCH BRANCHES FROM DATABASE
-            # This looks at your root 'branches' collection
             branches_ref = db.collection('branches').stream()
             branches_list = [doc.id for doc in branches_ref]
-            
-            # Debug: Check your terminal to see if branches are found
-            print(f"DEBUG: Found branches for registration: {branches_list}")
-            
-            # Pass the list to the template
             return render_template('register.html', branches=branches_list)
-            
         except Exception as e:
-            print(f"Error loading branches: {e}")
-            # Fallback to an empty list so the page still loads
             return render_template('register.html', branches=[])
     
-    # 3. Invalid Code
     else:
-        flash("Invalid Registration Code!")
-        return redirect(url_for('index'))
-    
+        # This sends the message to the next page the user sees
+        flash("Invalid Registration Code! Please contact your Professor.")
+        return redirect(url_for('login_page')) # Use the name of your login function
 
 @app.route('/api/register', methods=['POST'])
 def handle_registration():
