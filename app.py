@@ -8,9 +8,15 @@ import base64
 import secrets # Used for dynamic tokens
 from datetime import datetime
 import os
+from datetime import timedelta
 
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev_key_only')
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-fallback-key')
+app.config.update(
+    SESSION_COOKIE_SECURE=True,   # Required for HTTPS on Render
+    SESSION_COOKIE_SAMESITE='Lax', 
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=2)
+)
 
 # --- HELPER FUNCTIONS ---
 def hash_password(password):
@@ -121,19 +127,19 @@ def login():
     if user_doc.exists:
         user_data = user_doc.to_dict()
         if user_data.get('password') == password:
+            # FIX: Set session as permanent and save the 'user' object
+            session.permanent = True
+            session['user'] = user_data 
             session['user_email'] = email
             session['branch_id'] = user_data.get('branch')
             
-            # Use .get() and cast to int/str to avoid errors if the field is missing
             is_admin = user_data.get('is_admin', 0)
-            
             if str(is_admin) == '1' or is_admin is True:
                 return redirect(url_for('professor_dashboard'))
             return redirect(url_for('student_dashboard'))
     
-    # If we reach here, login failed
     flash("Invalid Email or Password!", "error")
-    return redirect(url_for('index')) # Matches your main page function
+    return redirect(url_for('index'))
 
 
 
@@ -397,31 +403,31 @@ def mark_attendance_page(branch_id):
 # 1. The Page that shows the QR + Live List
 @app.route('/professor/live-session/<branch_id>')
 def live_session(branch_id):
-    # Check if 'user' exists in session
+    # 1. Session & Admin Check
     user_data = session.get('user')
-    
     if not user_data:
         flash("Session expired. Please login.", "error")
         return redirect(url_for('index'))
 
-    # Robust check for is_admin (handles int, string, or boolean)
     is_admin = user_data.get('is_admin')
     if str(is_admin) != '1' and is_admin is not True:
-        flash("Access Denied: Professor account required.", "error")
+        flash("Access Denied.", "error")
         return redirect(url_for('index'))
 
-    # Fetch the session details to display (QR Token, etc.)
+    # 2. Fetch Active Session Data from Firestore
     branch_ref = db.collection('branches').document(branch_id).get()
     if not branch_ref.exists:
         flash("Branch not found.", "error")
         return redirect(url_for('professor_dashboard'))
 
     branch_data = branch_ref.to_dict()
-    
+    token = branch_data.get('current_token')
+    session_id = branch_data.get('current_session_id')
+
     return render_template('live_session.html', 
-                           branch_id=branch_id,
-                           token=branch_data.get('current_token'),
-                           session_id=branch_data.get('current_session_id'))
+                           branch_id=branch_id, 
+                           token=token, 
+                           session_id=session_id)
 
 
 @app.route('/api/users/<branch_id>', methods=['GET'])

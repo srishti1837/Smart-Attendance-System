@@ -2,44 +2,107 @@
 <html>
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Live Session - {{ branch_id }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .live-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; }
-        .present { color: #2e7d32; font-weight: bold; background: #e8f5e9; }
-        .absent { color: #c62828; opacity: 0.5; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        body { background: #fdf7fc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        
+        /* Header Styling */
+        .header-bar { 
+            background: #9c27b0; 
+            color: white; 
+            padding: 20px 40px; 
+            text-align: left;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Main Grid Layout */
+        .live-grid { 
+            display: grid; 
+            grid-template-columns: 380px 1fr; 
+            gap: 30px; 
+            padding: 30px; 
+            max-width: 1400px; 
+            margin: 0 auto;
+        }
+
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
+        }
+
+        /* Table Styling to match image */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { 
+            background: #f3e5f5; 
+            color: #333; 
+            padding: 15px; 
+            text-align: left; 
+            border-bottom: 3px solid #9c27b0;
+            font-weight: 600;
+        }
+        td { padding: 15px; border-bottom: 1px solid #eee; }
+
+        /* End Session Button Styling - Large & Centered */
+        .action-footer {
+            text-align: center;
+            padding: 40px;
+            margin-top: 20px;
+        }
+        .btn-end {
+            background: #9c27b0;
+            color: white;
+            border: none;
+            padding: 15px 60px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-end:hover {
+            background: #7b1fa2;
+            transform: translateY(-2px);
+        }
+
+        #qr-box img { max-width: 100%; border-radius: 10px; }
     </style>
 </head>
-<body style="background: #fdf7fc;">
-<div class="header-bar" style="background: #9c27b0; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+<body>
+
+    <div class="header-bar">
         <h2 style="margin:0;">Live Session: {{ branch_id }}</h2>
-        <button onclick="endSessionAndClose()" style="background: white; color: black; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
-            End & Close Session
-        </button>
     </div>
 
-    <div class="live-grid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; padding: 20px;">
-        <div class="card" style="text-align: center; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h3>Scan for Attendance</h3>
-            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 10px; border-radius: 10px; min-height: 200px; display: flex; align-items: center; justify-content: center;">
-                <p>Loading QR...</p>
+    <div class="live-grid">
+        <div class="card" style="text-align: center;">
+            <h3 style="margin-bottom: 20px; color: #333;">Scan for Attendance</h3>
+            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 20px; border-radius: 15px; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
+                <p style="color: #999;">Loading QR...</p>
             </div>
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">Students must verify identity & GPS (30m)</p>
+            <p style="font-size: 13px; color: #888; margin-top: 20px;">
+                Students must verify identity & location (30m)
+            </p>
         </div>
 
-        <div class="card" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin:0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h3>
-                <span id="sync-indicator" style="font-size: 12px; color: green;">● Live Syncing</span>
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h2>
+                <span id="sync-indicator" style="font-size: 13px; color: green; font-weight: bold;">
+                    ● <span id="sync-text">Live Syncing</span>
+                </span>
             </div>
             
-            <table style="width: 100%; border-collapse: collapse;">
+            <table>
                 <thead>
-                    <tr style="background: #f3e5f5; text-align: left;">
-                        <th style="padding: 10px;">Enrollment</th>
-                        <th style="padding: 10px;">Name</th>
-                        <th style="padding: 10px;">Status</th>
-                        <th style="padding: 10px;">Proxy Flag</th>
+                    <tr>
+                        <th>Enrollment</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Proxy Flag</th>
                     </tr>
                 </thead>
                 <tbody id="student-table">
@@ -48,55 +111,60 @@
         </div>
     </div>
 
+    <div class="action-footer">
+        <button onclick="endSessionAndClose()" class="btn-end">
+            End & Close Attendance Session
+        </button>
+    </div>
+
     <script>
         const branchId = "{{ branch_id }}";
 
-        // 1. Fetch QR once - Ensure the QR URL includes the latest token
         async function loadQR() {
-            const res = await fetch(`/generate_qr/${branchId}`);
-            const data = await res.text();
-            if (data.includes("data:image")) {
-                document.getElementById('qr-box').innerHTML = `<img src="${data}" width="100%" style="display:block;">`;
-            } else {
-                document.getElementById('qr-box').innerText = "Session Not Active";
-            }
+            try {
+                const res = await fetch(`/generate_qr/${branchId}`);
+                const data = await res.text();
+                if (data.includes("data:image")) {
+                    document.getElementById('qr-box').innerHTML = `<img src="${data}" alt="QR Code">`;
+                } else {
+                    document.getElementById('qr-box').innerText = "Session Not Active";
+                }
+            } catch (e) { document.getElementById('qr-box').innerText = "Error Loading QR"; }
         }
 
-        // 2. Poll Student List every 3 seconds
         async function updateList() {
             try {
-                // IMPORTANT: Ensure this API endpoint in app.py looks for the ACTIVE session
                 const res = await fetch(`/api/users/${branchId}`);
-                if (!res.ok) throw new Error("Failed to fetch");
+                if (!res.ok) throw new Error();
                 
                 const students = await res.json();
-                
                 const table = document.getElementById('student-table');
                 let presentCount = 0;
                 table.innerHTML = "";
 
                 students.forEach(s => {
                     if(s.is_present) presentCount++;
-                    const statusColor = s.is_present ? '#e8f5e9' : 'transparent';
-                    const statusText = s.is_present ? '✅ Present' : '❌ Absent';
-                    const statusClass = s.is_present ? 'status-present' : 'status-absent';
+                    const rowBg = s.is_present ? '#f9fbe7' : 'transparent';
                     
                     table.innerHTML += `
-                        <tr style="background: ${statusColor}; border-bottom: 1px solid #eee;">
-                            <td style="padding: 10px;">${s.enrollment_no}</td>
-                            <td style="padding: 10px;">${s.name}</td>
-                            <td style="padding: 10px; font-weight: bold; color: ${s.is_present ? 'green' : '#999'}">${statusText}</td>
-                            <td style="padding: 10px; text-align: center;">
+                        <tr style="background: ${rowBg};">
+                            <td>${s.enrollment_no}</td>
+                            <td>${s.name}</td>
+                            <td style="font-weight: bold; color: ${s.is_present ? '#2e7d32' : '#999'}">
+                                ${s.is_present ? '✅ Present' : '❌ Absent'}
+                            </td>
+                            <td>
                                 <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
                                        onchange="toggleProxy('${s.email}', this.checked)"
-                                       style="cursor: pointer; transform: scale(1.2);">
+                                       style="cursor: pointer; width: 18px; height: 18px;">
                             </td>
                         </tr>`;
                 });
                 document.getElementById('present-count').innerText = presentCount;
+                document.getElementById('sync-text').innerText = "Live Syncing";
+                document.getElementById('sync-indicator').style.color = "green";
             } catch (err) {
-                console.error("Polling error:", err);
-                document.getElementById('sync-indicator').innerText = "○ Disconnected";
+                document.getElementById('sync-text').innerText = "Disconnected";
                 document.getElementById('sync-indicator').style.color = "red";
             }
         }
@@ -106,33 +174,22 @@
             formData.append('email', email);
             formData.append('branch_id', branchId);
             formData.append('status', status);
-
-            await fetch('/api/toggle-proxy', {
-                method: 'POST',
-                body: formData
-            });
+            await fetch('/api/toggle-proxy', { method: 'POST', body: formData });
         }
 
-        
         async function endSessionAndClose() {
-            if(confirm("Are you sure you want to end this attendance session?")) {
-                // Tell the server to mark the session as 'closed' in Firestore
+            if(confirm("Permanently end this session?")) {
                 const response = await fetch(`/professor/stop-attendance/${branchId}`);
                 if(response.ok) {
-                    window.close(); // Only close the window after the DB is updated
+                    // Instead of window.close(), redirect back to the dashboard
+                    window.location.href = "/professor-dashboard"; 
                 }
             }
         }
-        // Initialize
-        loadQR();
-        updateList(); // Run once immediately
-        setInterval(updateList, 3000); // Then poll every 3 seconds
-    </script>
 
-    <style>
-        .card { transition: transform 0.2s; }
-        th { border-bottom: 2px solid #9c27b0; }
-        .status-present { font-weight: bold; color: green; }
-    </style>
+        loadQR();
+        updateList();
+        setInterval(updateList, 3000);
+    </script>
 </body>
 </html>
