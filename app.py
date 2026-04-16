@@ -629,7 +629,12 @@ def save_all_marks():
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+        
+    @app.route('/logout')
+def logout():
+    session.clear()   
+    return redirect('/') 
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
