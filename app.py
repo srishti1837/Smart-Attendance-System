@@ -384,7 +384,7 @@ def generate_qr(branch_id):
         token = branch_data.get('current_token', 'none')
 
     # Generate QR with token
-    qr_data = f"http://localhost:5000/mark-attendance-page/{branch_id}?token={token}"
+    qr_data = f"https://smart-attendance-system-elst.onrender.com/mark-attendance-page/{branch_id}?token={token}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(qr_data)
