@@ -135,21 +135,21 @@
             <div style="flex: 1; min-width: 200px; text-align: center;">
                 <button onclick="startAttendance(currentBranch)" class="btn-start" 
                         style="background: #9c27b0; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
-                    🚀 Mark Attendance
+                     Start Attendance
                 </button>
             </div>
 
             <div style="flex: 1; min-width: 200px; text-align: center;">
                 <button onclick="window.open('/professor/mark-assignments/' + currentBranch, '_blank')" 
                         style="background: #00796b; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
-                    📝 Mark Submissions
+                     Mark Submissions
                 </button>
             </div>
 
             <div style="flex: 1; min-width: 200px; text-align: center;">
                 <button onclick="window.open('/professor/add-marks/' + currentBranch, '_blank')" 
                         style="background: #e67e22; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
-                    📊 Add Marks
+                     Add Marks
                 </button>
             </div>
         </div>
@@ -164,7 +164,7 @@
         <div style="margin-top: 15px; text-align: center;">
             <button onclick="window.open('/professor/view-comments', '_blank')" 
                     style="background: #2196F3; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold;">
-                💬 View Comments
+                 View Comments
             </button>
         </div>
     </div>
@@ -199,7 +199,7 @@
         
         <button onclick="submitNewAssignment()" 
                 style="background: #9c27b0; color: white; border: none; padding: 14px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; font-size: 16px;">
-            🚀 Publish Assignment
+             Publish Assignment
         </button>
         
         <button onclick="toggleAddAssignmentModal(false)" 
@@ -259,39 +259,41 @@
     async function startAttendance(branchId) {
         if (!branchId) return alert("Select a branch first.");
 
-        const titleText = document.getElementById('active-branch-title').innerText;
-        if (titleText.includes("(Active)")) {
-            alert("A session is already in progress.");
-            return;
-        }
-
-        const startBtn = event.target; 
+        const startBtn = document.querySelector('.btn-start');
         startBtn.disabled = true;
-        startBtn.innerText = "Starting Session..."; // Changed from "Initializing GPS..."
+        startBtn.innerText = "Launching...";
 
         const formData = new FormData();
         formData.append('branch_id', branchId);
-        // Lat and Lng are no longer appended here
 
         try {
             const response = await fetch('/professor/start-attendance', {
                 method: 'POST',
                 body: formData
             });
+
+            if (response.status === 401) {
+                alert("Session expired. Please login again.");
+                window.location.href = "/";
+                return;
+            }
+
             const result = await response.json();
 
             if (result.status === "success") {
-                // Open the live session (QR/Token window)
-                window.open(`/professor/live-session/${branchId}`, '_blank');
-                location.reload(); 
+                // SUCCESS: Redirect the current page to the live session
+                // This bypasses the pop-up blocker completely
+                window.location.href = `/professor/live-session/${branchId}`;
             } else {
-                alert(result.message);
-                location.reload();
+                alert("Error: " + result.message);
+                startBtn.disabled = false;
+                startBtn.innerText = "Start Attendance";
             }
         } catch (err) {
-            alert("Server Error.");
+            console.error(err);
+            alert("Server Error. Check your connection.");
             startBtn.disabled = false;
-            startBtn.innerText = "🚀 Mark Attendance";
+            startBtn.innerText = "Start Attendance";
         }
     }
 

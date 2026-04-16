@@ -263,6 +263,7 @@ def start_attendance():
         print(f"ERROR: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
 @app.route('/professor/stop-attendance/<branch_id>')
 def stop_attendance(branch_id):
     try:
@@ -396,9 +397,32 @@ def mark_attendance_page(branch_id):
 # 1. The Page that shows the QR + Live List
 @app.route('/professor/live-session/<branch_id>')
 def live_session(branch_id):
-    if 'user' not in session or session['user'].get('is_admin') != 1:
+    # Check if 'user' exists in session
+    user_data = session.get('user')
+    
+    if not user_data:
+        flash("Session expired. Please login.", "error")
         return redirect(url_for('index'))
-    return render_template('live_session.html', branch_id=branch_id)
+
+    # Robust check for is_admin (handles int, string, or boolean)
+    is_admin = user_data.get('is_admin')
+    if str(is_admin) != '1' and is_admin is not True:
+        flash("Access Denied: Professor account required.", "error")
+        return redirect(url_for('index'))
+
+    # Fetch the session details to display (QR Token, etc.)
+    branch_ref = db.collection('branches').document(branch_id).get()
+    if not branch_ref.exists:
+        flash("Branch not found.", "error")
+        return redirect(url_for('professor_dashboard'))
+
+    branch_data = branch_ref.to_dict()
+    
+    return render_template('live_session.html', 
+                           branch_id=branch_id,
+                           token=branch_data.get('current_token'),
+                           session_id=branch_data.get('current_session_id'))
+
 
 @app.route('/api/users/<branch_id>', methods=['GET'])
 def get_branch_users(branch_id):
