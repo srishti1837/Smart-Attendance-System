@@ -5,82 +5,90 @@
     <title>Live Session - {{ branch_id }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* Base Reset */
         body { background: #fdf7fc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         
-        /* Fixed Header: Stretches across the top */
-        .header-bar { 
+        /* Enforce Full-Width Header Bar */
+        .top-nav { 
+            width: 100%; 
             background: white; 
-            padding: 15px 5%; 
+            padding: 15px 0; /* Vertical padding */
             display: flex; 
-            justify-content: space-between; 
+            justify-content: space-around; /* Distributes items evenly across the width */
             align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            position: sticky;
+            position: fixed;
             top: 0;
-            z-index: 100;
+            left: 0;
+            z-index: 1000;
         }
 
         .btn-end {
             background: #9c27b0;
             color: white;
             border: none;
-            padding: 12px 35px;
+            padding: 12px 40px;
             border-radius: 30px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+            font-size: 16px;
+            transition: 0.3s;
         }
+        .btn-end:hover { background: #7b1fa2; transform: scale(1.02); }
 
-        /* Container for Cards: Ensures they are centered and side-by-side */
-        .main-container {
+        /* Centered Content Container */
+        .content-area {
+            margin-top: 100px; /* Space for fixed header */
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            gap: 30px;
-            padding: 40px 20px;
-            flex-wrap: wrap; /* Allows stacking on mobile */
+            gap: 40px;
+            padding: 20px;
+            flex-wrap: wrap; /* Stacks on small screens */
         }
 
         .card { 
             background: white; 
             padding: 25px; 
-            border-radius: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            min-width: 350px;
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            min-width: 380px;
         }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: #f3e5f5; padding: 12px; border-bottom: 3px solid #9c27b0; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #eee; }
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #f3e5f5; padding: 15px; border-bottom: 3px solid #9c27b0; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #eee; }
 
         #qr-box img { width: 100%; border-radius: 10px; }
+        .live-dot { color: green; font-weight: bold; display: flex; align-items: center; gap: 5px; }
     </style>
 </head>
 <body>
 
-    <div class="header-bar">
-        <div>Branch: <b>{{ branch_id }}</b></div>
+    <div class="top-nav">
+        <div style="font-size: 18px;">Branch: <b>{{ branch_id }}</b></div>
         
         <button onclick="endSessionAndClose()" class="btn-end">
             End and close session
         </button>
 
-        <div style="color: green; font-weight: 500;">
-            ● <span id="sync-text">Live Syncing</span>
+        <div class="live-dot">
+            ● <span style="font-size: 14px;">Live Syncing</span>
         </div>
     </div>
 
-    <div class="main-container">
+    <div class="content-area">
         
-        <div class="card" style="max-width: 400px; text-align: center;">
-            <h3 style="margin-top: 0;">Scan for Attendance</h3>
-            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 15px; border-radius: 15px; background: #fafafa; min-height: 250px; display: flex; align-items: center; justify-content: center;">
-                <p style="color: #999;">Generating QR...</p>
+        <div class="card" style="text-align: center;">
+            <h3 style="margin-top: 0; color: #333;">Scan for Attendance</h3>
+            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 15px; border-radius: 15px; background: #fafafa; min-height: 280px; display: flex; align-items: center; justify-content: center;">
+                <p style="color: #999;">Generating Live QR...</p>
             </div>
-            <p style="font-size: 12px; color: #888; margin-top: 15px;">Students must verify identity & location (30m)</p>
+            <p style="font-size: 12px; color: #888; margin-top: 20px;">Students must verify identity & location (30m)</p>
         </div>
 
-        <div class="card" style="flex: 1; max-width: 700px;">
+        <div class="card" style="flex: 1; max-width: 750px;">
             <h2 style="margin-top: 0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h2>
             
             <table>
@@ -103,11 +111,13 @@
         const branchId = "{{ branch_id }}";
 
         async function loadQR() {
-            const res = await fetch(`/generate_qr/${branchId}`);
-            const data = await res.text();
-            if (data.includes("data:image")) {
-                document.getElementById('qr-box').innerHTML = `<img src="${data}">`;
-            }
+            try {
+                const res = await fetch(`/generate_qr/${branchId}`);
+                const data = await res.text();
+                if (data.includes("data:image")) {
+                    document.getElementById('qr-box').innerHTML = `<img src="${data}" alt="QR">`;
+                }
+            } catch(e) { console.log("QR Load Error"); }
         }
 
         async function updateList() {
@@ -120,22 +130,27 @@
 
                 students.forEach(s => {
                     if(s.is_present) count++;
+                    const rowColor = s.is_present ? '#f9fbe7' : 'transparent';
                     table.innerHTML += `
-                        <tr style="background: ${s.is_present ? '#f9fbe7' : 'transparent'}">
+                        <tr style="background: ${rowColor}">
                             <td>${s.enrollment_no}</td>
                             <td>${s.name}</td>
-                            <td style="color: ${s.is_present ? 'green' : '#ccc'}">
+                            <td style="font-weight: bold; color: ${s.is_present ? 'green' : '#999'}">
                                 ${s.is_present ? '✅ Present' : '❌ Absent'}
                             </td>
-                            <td><input type="checkbox" ${s.proxy_flag ? 'checked' : ''} onchange="toggleProxy('${s.email}', this.checked)"></td>
+                            <td>
+                                <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
+                                       style="transform: scale(1.3); cursor: pointer;"
+                                       onchange="toggleProxy('${s.email}', this.checked)">
+                            </td>
                         </tr>`;
                 });
                 document.getElementById('present-count').innerText = count;
-            } catch (e) { console.error("Sync error"); }
+            } catch (e) { console.log("Update Error"); }
         }
 
         async function endSessionAndClose() {
-            if(confirm("End session?")) {
+            if(confirm("End session and go back to dashboard?")) {
                 await fetch(`/professor/stop-attendance/${branchId}`);
                 window.location.href = "/professor-dashboard";
             }
@@ -143,7 +158,7 @@
 
         loadQR();
         updateList();
-        setInterval(updateList, 3000);
+        setInterval(updateList, 3000); // 3-second sync
     </script>
 </body>
 </html>
