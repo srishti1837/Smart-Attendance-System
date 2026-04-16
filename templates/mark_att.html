@@ -27,81 +27,48 @@
     </div>
 
     <script>
-        async function getLocationAndSubmit() {
+        async function submitAttendance() {
             const msg = document.getElementById('status-msg');
             const enrollment = document.getElementById('enrollment').value;
             const password = document.getElementById('password').value;
 
-            // Simple validation before asking for GPS
+            // Simple validation
             if(!enrollment || !password) {
                 msg.innerText = "Please enter both Enrollment No and Password.";
                 msg.style.color = "red";
                 return;
             }
 
-            msg.innerText = "Capturing precise location... please wait.";
+            msg.innerText = "Submitting attendance... please wait.";
             msg.style.color = "blue";
 
-            if (navigator.geolocation) {
-                // Using high accuracy to ensure Geofencing (30m) works correctly
-                const options = {
-                    enableHighAccuracy: true,
-                    timeout: 8000,
-                    maximumAge: 0
-                };
+            // Data payload WITHOUT lat and lng
+            const payload = {
+                enrollment: enrollment,
+                password: password,
+                branch_id: "{{ branch_id }}",
+                token: "{{ token }}" 
+            };
 
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const payload = {
-                        enrollment: enrollment,
-                        password: password,
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        branch_id: "{{ branch_id }}",
-                        token: "{{ token }}" // THIS IS CRITICAL for your security check
-                    };
+            try {
+                const response = await fetch('/submit-attendance', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(payload)
+                });
 
-                    try {
-                        const response = await fetch('/submit-attendance', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                            body: new URLSearchParams(payload)
-                        });
-
-                        const result = await response.text();
-                        msg.innerText = result;
-                        
-                        if (response.ok) {
-                            msg.style.color = "green";
-                            // Optional: Hide form on success
-                            document.getElementById('att-form').style.display = 'none';
-                        } else {
-                            msg.style.color = "red";
-                        }
-                    } catch (err) {
-                        msg.innerText = "Server Error. Please check your connection.";
-                        msg.style.color = "red";
-                    }
-
-                }, (error) => {
-                        msg.style.color = "red";
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                msg.innerText = "Error: Please allow GPS access in your browser settings.";
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                msg.innerText = "Error: Location information is unavailable. Try moving to a window.";
-                                break;
-                            case error.TIMEOUT:
-                                msg.innerText = "Error: Location request timed out. Retrying with lower accuracy...";
-                                // Optional: Call the function again with enableHighAccuracy: false
-                                break;
-                            case error.UNKNOWN_ERROR:
-                                msg.innerText = "An unknown error occurred.";
-                                break;
-                        }
-                }, options);
-            } else {
-                msg.innerText = "Your browser does not support Geolocation.";
+                const result = await response.text();
+                msg.innerText = result;
+                
+                if (response.ok) {
+                    msg.style.color = "green";
+                    // Success! Hide the form
+                    document.getElementById('att-form').style.display = 'none';
+                } else {
+                    msg.style.color = "red";
+                }
+            } catch (err) {
+                msg.innerText = "Server Error. Please check your connection.";
                 msg.style.color = "red";
             }
         }

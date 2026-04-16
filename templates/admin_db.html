@@ -244,8 +244,7 @@
         }
     }
 
-    // Function to handle GPS and start attendance
-    function startAttendance(branchId) {
+    async function startAttendance(branchId) {
         if (!branchId) return alert("Select a branch first.");
 
         const titleText = document.getElementById('active-branch-title').innerText;
@@ -256,45 +255,32 @@
 
         const startBtn = event.target; 
         startBtn.disabled = true;
-        startBtn.innerText = "Initializing GPS...";
+        startBtn.innerText = "Starting Session..."; // Changed from "Initializing GPS..."
 
-        if (!navigator.geolocation) {
-            alert("GPS not supported.");
-            startBtn.disabled = false;
-            startBtn.innerText = "🚀 Mark Attendance";
-            return;
-        }
+        const formData = new FormData();
+        formData.append('branch_id', branchId);
+        // Lat and Lng are no longer appended here
 
-        navigator.geolocation.getCurrentPosition(async (position) => {
-            const formData = new FormData();
-            formData.append('branch_id', branchId);
-            formData.append('lat', position.coords.latitude);
-            formData.append('lng', position.coords.longitude);
+        try {
+            const response = await fetch('/professor/start-attendance', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
 
-            try {
-                const response = await fetch('/professor/start-attendance', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (result.status === "success") {
-                    window.open(`/professor/live-session/${branchId}`, '_blank');
-                    location.reload(); 
-                } else {
-                    alert(result.message);
-                    location.reload();
-                }
-            } catch (err) {
-                alert("Server Error.");
-                startBtn.disabled = false;
-                startBtn.innerText = "🚀 Mark Attendance";
+            if (result.status === "success") {
+                // Open the live session (QR/Token window)
+                window.open(`/professor/live-session/${branchId}`, '_blank');
+                location.reload(); 
+            } else {
+                alert(result.message);
+                location.reload();
             }
-        }, (error) => {
-            alert("GPS Access Denied.");
+        } catch (err) {
+            alert("Server Error.");
             startBtn.disabled = false;
             startBtn.innerText = "🚀 Mark Attendance";
-        }, { enableHighAccuracy: true });
+        }
     }
 
     function toggleAddAssignmentModal(show) {

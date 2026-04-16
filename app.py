@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from firebase_config import db
 from firebase_admin import firestore
-from geopy.distance import geodesic
 import hashlib
 import qrcode
 import io
@@ -214,31 +213,26 @@ def professor_dashboard():
 def start_attendance():
     try:
         branch_id = request.form.get('branch_id', '').strip().upper()
-        lat = float(request.form.get('lat'))
-        lng = float(request.form.get('lng'))
+        # Removed lat/lng capturing
 
         branch_ref = db.collection('branches').document(branch_id)
         branch_data = branch_ref.get().to_dict()
 
-        # Check if a session is flagged as active
         if branch_data.get('attendance_active'):
             existing_id = branch_data.get('current_session_id')
-            # Check if that document ACTUALLY exists in the attendance silo
             doc_check = db.collection(f"{branch_id}_attendance").document(existing_id).get()
             
             if doc_check.exists:
-                print(f"DEBUG: Reusing existing session {existing_id}")
                 return jsonify({
                     "status": "success", 
                     "token": branch_data.get('current_token'), 
                     "session_id": existing_id
                 })
 
-        # If no active session OR the document was missing/deleted, create a new one
         session_id = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         session_token = secrets.token_hex(4)
 
-        # 1. Create document
+        # 1. Create document (Removed lat/lng)
         db.collection(f"{branch_id}_attendance").document(session_id).set({
             'present_list': [],
             'start_time': firestore.SERVER_TIMESTAMP,
@@ -246,23 +240,18 @@ def start_attendance():
             'token': session_token
         })
 
-        # 2. Update Registry
+        # 2. Update Registry (Removed lat/lng)
         branch_ref.update({
             'attendance_active': True,
             'current_session_id': session_id,
-            'current_token': session_token,
-            'lat': lat,
-            'lng': lng
+            'current_token': session_token
         })
 
-        print(f"DEBUG: New session document created: {session_id}")
         return jsonify({"status": "success", "token": session_token, "session_id": session_id})
 
     except Exception as e:
         print(f"ERROR: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-      
-
 
 @app.route('/professor/stop-attendance/<branch_id>')
 def stop_attendance(branch_id):
@@ -295,11 +284,9 @@ def stop_attendance(branch_id):
 @app.route('/submit-attendance', methods=['POST'])
 def submit_attendance():
     try:
-        # 1. Capture data
+        # 1. Capture data (Removed student_lat/lng)
         enrollment = request.form.get('enrollment', '').strip()
         password = hash_password(request.form.get('password', ''))
-        student_lat = float(request.form.get('lat', 0))
-        student_lng = float(request.form.get('lng', 0))
         branch_id = request.form.get('branch_id', '').strip().upper() 
         provided_token = request.form.get('token', '').strip()
 
@@ -317,7 +304,7 @@ def submit_attendance():
 
         current_session_id = branch_data.get('current_session_id')
 
-        # 3. STUDENT IDENTITY & FETCH EMAIL
+        # 3. STUDENT IDENTITY
         branch_silo = f"{branch_id}_users" 
         student_query = db.collection(branch_silo).where('enrollment_no', '==', enrollment).get()
 
@@ -332,29 +319,20 @@ def submit_attendance():
 
         student_email = student_data.get('email')
 
-        # 4. DUPLICATE CHECK: Check the actual session document
+        # 4. DUPLICATE CHECK
         session_ref = db.collection(f"{branch_id}_attendance").document(current_session_id)
         session_data = session_ref.get().to_dict()
         
         if student_email in session_data.get('present_list', []):
             return "Already Marked! You are already on the attendance list.", 200
-
-        # 5. GEOFENCING (30m limit)
-        prof_coords = (branch_data['lat'], branch_data['lng'])
-        student_coords = (student_lat, student_lng)
-        distance = geodesic(student_coords, prof_coords).meters
-
-        if distance <= 30:
-            # 6. LOG ATTENDANCE: Update ONLY the branch session document
-            # The code that created the generic 'attendance' collection has been removed.
-            session_ref.update({
-                'present_list': firestore.ArrayUnion([student_email]),
-                'last_updated': firestore.SERVER_TIMESTAMP
-            })
-
-            return "Success! Attendance marked for this session.", 200
         
-        return f"Too far! You are {round(distance)}m away from the professor.", 403
+        # 6. LOG ATTENDANCE
+        session_ref.update({
+            'present_list': firestore.ArrayUnion([student_email]),
+            'last_updated': firestore.SERVER_TIMESTAMP
+        })
+
+        return "Success! Attendance marked for this session.", 200
 
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
