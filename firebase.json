@@ -1,0 +1,21 @@
+{
+  "hosting": {
+    "public": "static",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "venv/**",
+      ".env"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "attendx-web",
+          "region": "us-central1"
+        }
+      }
+    ]
+  }
+}
