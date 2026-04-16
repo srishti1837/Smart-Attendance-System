@@ -5,104 +5,83 @@
     <title>Live Session - {{ branch_id }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { background: #fdf7fc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background: #fdf7fc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         
-        /* 1. Header Bar Structure - Centered Button */
+        /* Fixed Header: Stretches across the top */
         .header-bar { 
             background: white; 
-            padding: 20px 40px; 
+            padding: 15px 5%; 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-            border-bottom: 2px solid #eee;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .header-left b { color: #333; font-size: 18px; }
-        .header-right span { font-size: 14px; font-weight: 500; }
-
-        /* Modernized End Button */
         .btn-end {
             background: #9c27b0;
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 16px;
+            padding: 12px 35px;
+            border-radius: 30px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.2);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
         }
-        .btn-end:hover { background: #7b1fa2; transform: translateY(-1px); }
 
-        /* 2. Main Content Layout - Centered side-by-side */
-        .centered-content {
+        /* Container for Cards: Ensures they are centered and side-by-side */
+        .main-container {
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            gap: 40px;
-            padding: 50px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
+            gap: 30px;
+            padding: 40px 20px;
+            flex-wrap: wrap; /* Allows stacking on mobile */
         }
 
         .card { 
             background: white; 
-            padding: 30px; 
+            padding: 25px; 
             border-radius: 15px; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.05); 
-            text-align: center;
-            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            min-width: 350px;
         }
 
-        /* Table Styling to match image */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { 
-            background: #f3e5f5; 
-            color: #333; 
-            padding: 15px; 
-            text-align: left; 
-            border-bottom: 3px solid #9c27b0;
-            font-weight: 600;
-        }
-        td { padding: 15px; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f3e5f5; padding: 12px; border-bottom: 3px solid #9c27b0; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
 
-        #qr-box img { max-width: 100%; border-radius: 10px; }
+        #qr-box img { width: 100%; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div class="header-bar">
-        <div class="header-left">
-            Branch: <b>{{ branch_id }}</b>
-        </div>
+        <div>Branch: <b>{{ branch_id }}</b></div>
         
         <button onclick="endSessionAndClose()" class="btn-end">
             End and close session
         </button>
 
-        <div class="header-right">
-            <span id="sync-indicator" style="color: green;">● <span id="sync-text">Live Syncing</span></span>
+        <div style="color: green; font-weight: 500;">
+            ● <span id="sync-text">Live Syncing</span>
         </div>
     </div>
 
-    <div class="centered-content">
+    <div class="main-container">
         
-        <div class="card" style="width: 380px;">
-            <h3 style="margin-bottom: 25px; color: #333;">Scan for Attendance</h3>
-            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 20px; border-radius: 15px; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
-                <p style="color: #999;">Loading QR Code...</p>
+        <div class="card" style="max-width: 400px; text-align: center;">
+            <h3 style="margin-top: 0;">Scan for Attendance</h3>
+            <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 15px; border-radius: 15px; background: #fafafa; min-height: 250px; display: flex; align-items: center; justify-content: center;">
+                <p style="color: #999;">Generating QR...</p>
             </div>
-            <p style="font-size: 13px; color: #888; margin-top: 25px;">
-                Students must verify identity & location (30m)
-            </p>
+            <p style="font-size: 12px; color: #888; margin-top: 15px;">Students must verify identity & location (30m)</p>
         </div>
 
-        <div class="card" style="flex: 1;">
-            <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 25px;">
-                <h2 style="margin:0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h2>
-            </div>
+        <div class="card" style="flex: 1; max-width: 700px;">
+            <h2 style="margin-top: 0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h2>
             
             <table>
                 <thead>
@@ -110,88 +89,61 @@
                         <th>Enrollment</th>
                         <th>Name</th>
                         <th>Status</th>
-                        <th>Proxy Flag</th>
-                    }
+                        <th>Proxy</th>
+                    </tr>
                 </thead>
                 <tbody id="student-table">
                     </tbody>
             </table>
         </div>
+
     </div>
 
     <script>
         const branchId = "{{ branch_id }}";
 
         async function loadQR() {
-            try {
-                const res = await fetch(`/generate_qr/${branchId}`);
-                const data = await res.text();
-                if (data.includes("data:image")) {
-                    document.getElementById('qr-box').innerHTML = `<img src="${data}" alt="Attendance QR">`;
-                } else {
-                    document.getElementById('qr-box').innerText = "Session Not Active";
-                }
-            } catch (e) { document.getElementById('qr-box').innerText = "Error Loading QR"; }
+            const res = await fetch(`/generate_qr/${branchId}`);
+            const data = await res.text();
+            if (data.includes("data:image")) {
+                document.getElementById('qr-box').innerHTML = `<img src="${data}">`;
+            }
         }
 
         async function updateList() {
             try {
                 const res = await fetch(`/api/users/${branchId}`);
-                if (!res.ok) throw new Error();
-                
                 const students = await res.json();
                 const table = document.getElementById('student-table');
-                let presentCount = 0;
+                let count = 0;
                 table.innerHTML = "";
 
                 students.forEach(s => {
-                    if(s.is_present) presentCount++;
-                    const rowBg = s.is_present ? '#f9fbe7' : 'transparent';
-                    
+                    if(s.is_present) count++;
                     table.innerHTML += `
-                        <tr style="background: ${rowBg};">
+                        <tr style="background: ${s.is_present ? '#f9fbe7' : 'transparent'}">
                             <td>${s.enrollment_no}</td>
                             <td>${s.name}</td>
-                            <td style="font-weight: bold; color: ${s.is_present ? '#2e7d32' : '#999'}">
+                            <td style="color: ${s.is_present ? 'green' : '#ccc'}">
                                 ${s.is_present ? '✅ Present' : '❌ Absent'}
                             </td>
-                            <td style="text-align: center;">
-                                <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
-                                       onchange="toggleProxy('${s.email}', this.checked)"
-                                       style="cursor: pointer; width: 18px; height: 18px;">
-                            </td>
+                            <td><input type="checkbox" ${s.proxy_flag ? 'checked' : ''} onchange="toggleProxy('${s.email}', this.checked)"></td>
                         </tr>`;
                 });
-                document.getElementById('present-count').innerText = presentCount;
-                document.getElementById('sync-text').innerText = "Live Syncing";
-                document.getElementById('sync-indicator').style.color = "green";
-            } catch (err) {
-                document.getElementById('sync-text').innerText = "Disconnected";
-                document.getElementById('sync-indicator').style.color = "red";
-            }
-        }
-
-        async function toggleProxy(email, status) {
-            const formData = new FormData();
-            formData.append('email', email);
-            formData.append('branch_id', branchId);
-            formData.append('status', status);
-            await fetch('/api/toggle-proxy', { method: 'POST', body: formData });
+                document.getElementById('present-count').innerText = count;
+            } catch (e) { console.error("Sync error"); }
         }
 
         async function endSessionAndClose() {
-            if(confirm("Permanently end this session? Students will no longer be able to mark attendance.")) {
-                const response = await fetch(`/professor/stop-attendance/${branchId}`);
-                if(response.ok) { 
-                    // Redirect back to dashboard instead of just closing window
-                    window.location.href = "/professor-dashboard"; 
-                }
+            if(confirm("End session?")) {
+                await fetch(`/professor/stop-attendance/${branchId}`);
+                window.location.href = "/professor-dashboard";
             }
         }
 
         loadQR();
         updateList();
-        setInterval(updateList, 3000); // Poll list every 3 seconds
+        setInterval(updateList, 3000);
     </script>
 </body>
 </html>
