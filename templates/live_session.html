@@ -7,34 +7,57 @@
     <style>
         body { background: #fdf7fc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
         
-        /* Header Styling */
+        /* 1. Header Bar Structure - Centered Button */
         .header-bar { 
-            background: #9c27b0; 
-            color: white; 
+            background: white; 
             padding: 20px 40px; 
-            text-align: left;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border-bottom: 2px solid #eee;
         }
 
-        /* Main Grid Layout */
-        .live-grid { 
-            display: grid; 
-            grid-template-columns: 380px 1fr; 
-            gap: 30px; 
-            padding: 30px; 
-            max-width: 1400px; 
+        .header-left b { color: #333; font-size: 18px; }
+        .header-right span { font-size: 14px; font-weight: 500; }
+
+        /* Modernized End Button */
+        .btn-end {
+            background: #9c27b0;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(156, 39, 176, 0.2);
+            transition: all 0.3s ease;
+        }
+        .btn-end:hover { background: #7b1fa2; transform: translateY(-1px); }
+
+        /* 2. Main Content Layout - Centered side-by-side */
+        .centered-content {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 40px;
+            padding: 50px 20px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
         .card { 
             background: white; 
-            padding: 25px; 
+            padding: 30px; 
             border-radius: 15px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05); 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05); 
+            text-align: center;
+            box-sizing: border-box;
         }
 
         /* Table Styling to match image */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th { 
             background: #f3e5f5; 
             color: #333; 
@@ -45,55 +68,40 @@
         }
         td { padding: 15px; border-bottom: 1px solid #eee; }
 
-        /* End Session Button Styling - Large & Centered */
-        .action-footer {
-            text-align: center;
-            padding: 40px;
-            margin-top: 20px;
-        }
-        .btn-end {
-            background: #9c27b0;
-            color: white;
-            border: none;
-            padding: 15px 60px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);
-            transition: all 0.3s ease;
-        }
-        .btn-end:hover {
-            background: #7b1fa2;
-            transform: translateY(-2px);
-        }
-
         #qr-box img { max-width: 100%; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div class="header-bar">
-        <h2 style="margin:0;">Live Session: {{ branch_id }}</h2>
+        <div class="header-left">
+            Branch: <b>{{ branch_id }}</b>
+        </div>
+        
+        <button onclick="endSessionAndClose()" class="btn-end">
+            End and close session
+        </button>
+
+        <div class="header-right">
+            <span id="sync-indicator" style="color: green;">● <span id="sync-text">Live Syncing</span></span>
+        </div>
     </div>
 
-    <div class="live-grid">
-        <div class="card" style="text-align: center;">
-            <h3 style="margin-bottom: 20px; color: #333;">Scan for Attendance</h3>
+    <div class="centered-content">
+        
+        <div class="card" style="width: 380px;">
+            <h3 style="margin-bottom: 25px; color: #333;">Scan for Attendance</h3>
             <div id="qr-box" style="border: 2px dashed #9c27b0; padding: 20px; border-radius: 15px; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #fafafa;">
-                <p style="color: #999;">Loading QR...</p>
+                <p style="color: #999;">Loading QR Code...</p>
             </div>
-            <p style="font-size: 13px; color: #888; margin-top: 20px;">
+            <p style="font-size: 13px; color: #888; margin-top: 25px;">
                 Students must verify identity & location (30m)
             </p>
         </div>
 
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="card" style="flex: 1;">
+            <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 25px;">
                 <h2 style="margin:0;">Headcount: <span id="present-count" style="color: #9c27b0;">0</span></h2>
-                <span id="sync-indicator" style="font-size: 13px; color: green; font-weight: bold;">
-                    ● <span id="sync-text">Live Syncing</span>
-                </span>
             </div>
             
             <table>
@@ -103,18 +111,12 @@
                         <th>Name</th>
                         <th>Status</th>
                         <th>Proxy Flag</th>
-                    </tr>
+                    }
                 </thead>
                 <tbody id="student-table">
                     </tbody>
             </table>
         </div>
-    </div>
-
-    <div class="action-footer">
-        <button onclick="endSessionAndClose()" class="btn-end">
-            End & Close Attendance Session
-        </button>
     </div>
 
     <script>
@@ -125,7 +127,7 @@
                 const res = await fetch(`/generate_qr/${branchId}`);
                 const data = await res.text();
                 if (data.includes("data:image")) {
-                    document.getElementById('qr-box').innerHTML = `<img src="${data}" alt="QR Code">`;
+                    document.getElementById('qr-box').innerHTML = `<img src="${data}" alt="Attendance QR">`;
                 } else {
                     document.getElementById('qr-box').innerText = "Session Not Active";
                 }
@@ -153,7 +155,7 @@
                             <td style="font-weight: bold; color: ${s.is_present ? '#2e7d32' : '#999'}">
                                 ${s.is_present ? '✅ Present' : '❌ Absent'}
                             </td>
-                            <td>
+                            <td style="text-align: center;">
                                 <input type="checkbox" ${s.proxy_flag ? 'checked' : ''} 
                                        onchange="toggleProxy('${s.email}', this.checked)"
                                        style="cursor: pointer; width: 18px; height: 18px;">
@@ -178,10 +180,10 @@
         }
 
         async function endSessionAndClose() {
-            if(confirm("Permanently end this session?")) {
+            if(confirm("Permanently end this session? Students will no longer be able to mark attendance.")) {
                 const response = await fetch(`/professor/stop-attendance/${branchId}`);
-                if(response.ok) {
-                    // Instead of window.close(), redirect back to the dashboard
+                if(response.ok) { 
+                    // Redirect back to dashboard instead of just closing window
                     window.location.href = "/professor-dashboard"; 
                 }
             }
@@ -189,7 +191,7 @@
 
         loadQR();
         updateList();
-        setInterval(updateList, 3000);
+        setInterval(updateList, 3000); // Poll list every 3 seconds
     </script>
 </body>
 </html>
